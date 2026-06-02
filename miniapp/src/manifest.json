@@ -1,0 +1,18 @@
+{
+  "name": "小区英语组班",
+  "appid": "__UNI__EDU_GROUP",
+  "description": "小区英语组班机构小程序",
+  "versionName": "0.1.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "touristappid",
+    "setting": {
+      "urlCheck": false,
+      "es6": true,
+      "postcss": true,
+      "minified": true
+    },
+    "usingComponents": true
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "pages": [
+    {
+      "path": "pages/login/index",
+      "style": {
+        "navigationBarTitleText": "小区英语"
+      }
+    },
+    {
+      "path": "pages/identity/index",
+      "style": {
+        "navigationBarTitleText": "选择身份"
+      }
+    },
+    {
+      "path": "pages/teacher/home",
+      "style": {
+        "navigationBarTitleText": "老师工作台"
+      }
+    },
+    {
+      "path": "pages/student/home",
+      "style": {
+        "navigationBarTitleText": "学生学习台"
+      }
+    },
+    {
+      "path": "pages/guardian/home",
+      "style": {
+        "navigationBarTitleText": "家长中心"
+      }
+    },
+    {
+      "path": "pages/mine/index",
+      "style": {
+        "navigationBarTitleText": "我的"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "小区英语",
+    "navigationBarBackgroundColor": "#f6f1e8",
+    "backgroundColor": "#f6f1e8"
+  }
+}
