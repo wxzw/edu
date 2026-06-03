@@ -5,4 +5,6 @@ miniapp/node_modules/
 miniapp/dist/
 miniapp/unpackage/
 backend/target/
+uploads/
+logs/
 .idea/
