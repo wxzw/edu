@@ -7,7 +7,8 @@
     <!-- ============================================================ -->
     <!-- 从 Spring Environment 读取配置属性                             -->
     <!-- ============================================================ -->
-    <springProperty scope="context" name="LOG_PATH" source="logging.file.path" defaultValue="logs"/>
+    <!-- LOG_PATH: 无需手动声明，Spring Boot 检测到自定义 logback-spring.xml
+         时会自动将 logging.file.path 解析为绝对路径并设为系统属性 ${LOG_PATH} -->
     <springProperty scope="context" name="APP_NAME" source="spring.application.name" defaultValue="edu-backend"/>
 
     <!-- ============================================================ -->
