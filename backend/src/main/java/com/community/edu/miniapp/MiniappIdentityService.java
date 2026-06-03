@@ -6,7 +6,6 @@ import com.community.edu.common.exception.ErrorCode;
 import com.community.edu.entity.EduGuardian;
 import com.community.edu.entity.EduStudent;
 import com.community.edu.entity.EduTeacher;
-import com.community.edu.entity.SysUser;
 import com.community.edu.mapper.EduGuardianMapper;
 import com.community.edu.mapper.EduStudentMapper;
 import com.community.edu.mapper.EduTeacherMapper;
@@ -37,26 +36,28 @@ public class MiniappIdentityService {
     private final EduGuardianMapper guardianMapper;
     private final EduStudentMapper studentMapper;
 
-    public List<MiniappIdentityResponse> listAvailableIdentities(SysUser user, List<Long> allowedCampusIds) {
+    public List<MiniappIdentityResponse> listAvailableIdentities(CurrentUser currentUser) {
+        List<Long> allowedCampusIds = currentUser.campusIds();
         Set<Long> campusIdSet = allowedCampusIds == null ? Set.of() : Set.copyOf(allowedCampusIds);
-        String accountType = normalizeKnownIdentityType(user.getAccountType());
+        String accountType = normalizeKnownIdentityType(currentUser.getAccountType());
         if (accountType == null) {
             return List.of();
         }
+        Long userId = currentUser.getUserId();
         return switch (accountType) {
-            case TEACHER -> teacherMapper.selectByUserIdIgnoreTenant(user.getId()).stream()
+            case TEACHER -> teacherMapper.selectByUserIdIgnoreTenant(userId).stream()
                 .filter(teacher -> ENABLED.equals(teacher.getStatus()))
                 .filter(teacher -> campusAllowed(campusIdSet, teacher.getCampusId()))
                 .map(this::fromTeacher)
                 .sorted(identityComparator())
                 .toList();
-            case GUARDIAN -> guardianMapper.selectByUserIdIgnoreTenant(user.getId()).stream()
+            case GUARDIAN -> guardianMapper.selectByUserIdIgnoreTenant(userId).stream()
                 .filter(guardian -> ENABLED.equals(guardian.getStatus()))
                 .filter(guardian -> campusAllowed(campusIdSet, guardian.getCampusId()))
                 .map(this::fromGuardian)
                 .sorted(identityComparator())
                 .toList();
-            case STUDENT -> studentMapper.selectByUserIdIgnoreTenant(user.getId()).stream()
+            case STUDENT -> studentMapper.selectByUserIdIgnoreTenant(userId).stream()
                 .filter(student -> ACTIVE.equals(student.getStatus()))
                 .filter(student -> campusAllowed(campusIdSet, student.getCampusId()))
                 .map(this::fromStudent)
@@ -67,13 +68,12 @@ public class MiniappIdentityService {
     }
 
     public MiniappIdentityResponse resolveSelectedIdentity(
-        SysUser user,
         CurrentUser currentUser,
         String identityType,
         Long identityId
     ) {
         String normalizedType = normalizeIdentityType(identityType);
-        return listAvailableIdentities(user, currentUser.campusIds()).stream()
+        return listAvailableIdentities(currentUser).stream()
             .filter(identity -> Objects.equals(identity.getIdentityType(), normalizedType))
             .filter(identity -> Objects.equals(identity.getIdentityId(), identityId))
             .findFirst()

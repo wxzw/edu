@@ -3,7 +3,6 @@ package com.community.edu.miniapp;
 import com.community.edu.common.context.CurrentUser;
 import com.community.edu.common.exception.BizException;
 import com.community.edu.common.exception.ErrorCode;
-import com.community.edu.entity.SysUser;
 import com.community.edu.miniapp.dto.MiniappIdentityResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -22,7 +21,7 @@ public class MiniappIdentityScopeService {
 
     private final MiniappIdentityService identityService;
 
-    public MiniappIdentityResponse resolveFromHeadersOrDefault(SysUser user, CurrentUser currentUser) {
+    public MiniappIdentityResponse resolveFromHeadersOrDefault(CurrentUser currentUser) {
         HttpServletRequest request = currentRequest();
         String identityType = request == null ? null : request.getHeader(IDENTITY_TYPE_HEADER);
         String identityIdValue = request == null ? null : request.getHeader(IDENTITY_ID_HEADER);
@@ -30,10 +29,10 @@ public class MiniappIdentityScopeService {
             if (!StringUtils.hasText(identityType) || !StringUtils.hasText(identityIdValue)) {
                 throw new BizException(ErrorCode.BAD_REQUEST, "Both X-Identity-Type and X-Identity-Id are required");
             }
-            return identityService.resolveSelectedIdentity(user, currentUser, identityType, parseIdentityId(identityIdValue));
+            return identityService.resolveSelectedIdentity(currentUser, identityType, parseIdentityId(identityIdValue));
         }
 
-        List<MiniappIdentityResponse> identities = identityService.listAvailableIdentities(user, currentUser.campusIds());
+        List<MiniappIdentityResponse> identities = identityService.listAvailableIdentities(currentUser);
         return identityService.pickDefaultIdentity(identities, currentUser.getAccountType());
     }
 

@@ -63,9 +63,8 @@ public class MiniappAuthService {
 
     public MiniappMeResponse me() {
         CurrentUser currentUser = CurrentUserHolder.getRequired();
-        SysUser user = requiredUser(currentUser.getUserId());
-        List<MiniappIdentityResponse> identities = identityService.listAvailableIdentities(user, currentUser.campusIds());
-        MiniappIdentityResponse selectedIdentity = identityScopeService.resolveFromHeadersOrDefault(user, currentUser);
+        List<MiniappIdentityResponse> identities = identityService.listAvailableIdentities(currentUser);
+        MiniappIdentityResponse selectedIdentity = identityScopeService.resolveFromHeadersOrDefault(currentUser);
         return MiniappMeResponse.builder()
             .userInfo(authService.currentUserInfo())
             .availableIdentities(identities)
@@ -75,16 +74,14 @@ public class MiniappAuthService {
 
     public MiniappMeResponse selectIdentity(MiniappSelectIdentityRequest request) {
         CurrentUser currentUser = CurrentUserHolder.getRequired();
-        SysUser user = requiredUser(currentUser.getUserId());
         MiniappIdentityResponse selectedIdentity = identityService.resolveSelectedIdentity(
-            user,
             currentUser,
             request.getIdentityType(),
             request.getIdentityId()
         );
         return MiniappMeResponse.builder()
             .userInfo(authService.currentUserInfo())
-            .availableIdentities(identityService.listAvailableIdentities(user, currentUser.campusIds()))
+            .availableIdentities(identityService.listAvailableIdentities(currentUser))
             .selectedIdentity(selectedIdentity)
             .build();
     }
@@ -132,7 +129,7 @@ public class MiniappAuthService {
     private MiniappIdentityCandidate buildIdentityCandidate(SysUser user, String roleHint) {
         validateEnabled(user);
         CurrentUser currentUser = authService.buildCurrentUser(user);
-        List<MiniappIdentityResponse> identities = identityService.listAvailableIdentities(user, currentUser.campusIds());
+        List<MiniappIdentityResponse> identities = identityService.listAvailableIdentities(currentUser);
         MiniappIdentityResponse selectedIdentity = identityService.pickDefaultIdentity(identities, roleHint);
         return new MiniappIdentityCandidate(user, identities, selectedIdentity);
     }
