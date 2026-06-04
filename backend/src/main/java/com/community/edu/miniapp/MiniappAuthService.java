@@ -25,6 +25,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+/**
+ * 小程序认证服务。处理微信登录、身份解析及身份切换。
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor

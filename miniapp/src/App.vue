@@ -27,10 +27,29 @@ button {
   margin: 0;
   border: 0;
   background: transparent;
-  line-height: 1;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 button::after {
   border: 0;
+}
+
+/* 页面入场动画 */
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(16rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-fade-enter {
+  animation: page-fade-in 0.3s ease both;
 }
 </style>

@@ -1,6 +1,10 @@
 package com.community.edu.common.dto;
 
 import jakarta.validation.constraints.Max;
+
+/**
+ * 分页查询参数。封装分页查询的请求参数。
+ */
 import jakarta.validation.constraints.Min;
 import lombok.Getter;
 import lombok.Setter;

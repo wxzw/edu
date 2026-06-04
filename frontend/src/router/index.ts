@@ -59,6 +59,30 @@ const routes: RouteRecordRaw[] = [
         meta: { permission: 'edu:student' },
         component: () => import('@/views/StudentsView.vue'),
       },
+      {
+        path: 'materials',
+        name: 'materials',
+        meta: { permission: 'resource:material' },
+        component: () => import('@/views/MaterialsView.vue'),
+      },
+      {
+        path: 'activities',
+        name: 'activities',
+        meta: { permission: 'operation:activity' },
+        component: () => import('@/views/ActivitiesView.vue'),
+      },
+      {
+        path: 'finance',
+        name: 'finance',
+        meta: { permission: 'finance:order' },
+        component: () => import('@/views/FinanceView.vue'),
+      },
+      {
+        path: 'notifications',
+        name: 'notifications',
+        meta: { permission: 'system:notification' },
+        component: () => import('@/views/NotificationsView.vue'),
+      },
     ],
   },
   {

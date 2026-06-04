@@ -19,9 +19,141 @@
       }
     },
     {
+      "path": "pages/teacher/class/list",
+      "style": {
+        "navigationBarTitleText": "我的班级"
+      }
+    },
+    {
+      "path": "pages/teacher/class/detail",
+      "style": {
+        "navigationBarTitleText": "班级详情"
+      }
+    },
+    {
+      "path": "pages/teacher/student/profile",
+      "style": {
+        "navigationBarTitleText": "学生档案"
+      }
+    },
+    {
+      "path": "pages/teacher/homework/list",
+      "style": {
+        "navigationBarTitleText": "作业管理"
+      }
+    },
+    {
+      "path": "pages/teacher/homework/create",
+      "style": {
+        "navigationBarTitleText": "发布作业"
+      }
+    },
+    {
+      "path": "pages/teacher/homework/detail",
+      "style": {
+        "navigationBarTitleText": "作业详情"
+      }
+    },
+    {
+      "path": "pages/teacher/attendance/list",
+      "style": {
+        "navigationBarTitleText": "今日考勤"
+      }
+    },
+    {
+      "path": "pages/teacher/attendance/detail",
+      "style": {
+        "navigationBarTitleText": "考勤详情"
+      }
+    },
+    {
+      "path": "pages/teacher/checkin/list",
+      "style": {
+        "navigationBarTitleText": "打卡任务"
+      }
+    },
+    {
+      "path": "pages/teacher/checkin/progress",
+      "style": {
+        "navigationBarTitleText": "打卡进度"
+      }
+    },
+    {
+      "path": "pages/teacher/material/list",
+      "style": {
+        "navigationBarTitleText": "教学资料"
+      }
+    },
+    {
+      "path": "pages/teacher/material/upload",
+      "style": {
+        "navigationBarTitleText": "上传资料"
+      }
+    },
+    {
       "path": "pages/student/home",
       "style": {
-        "navigationBarTitleText": "学生学习台"
+        "navigationBarTitleText": "学习首页"
+      }
+    },
+    {
+      "path": "pages/student/learning",
+      "style": {
+        "navigationBarTitleText": "学习中心"
+      }
+    },
+    {
+      "path": "pages/student/course",
+      "style": {
+        "navigationBarTitleText": "我的课程"
+      }
+    },
+    {
+      "path": "pages/student/homework/detail",
+      "style": {
+        "navigationBarTitleText": "作业详情"
+      }
+    },
+    {
+      "path": "pages/student/material/detail",
+      "style": {
+        "navigationBarTitleText": "资料详情"
+      }
+    },
+    {
+      "path": "pages/student/activity/list",
+      "style": {
+        "navigationBarTitleText": "校区活动"
+      }
+    },
+    {
+      "path": "pages/student/activity/detail",
+      "style": {
+        "navigationBarTitleText": "活动详情"
+      }
+    },
+    {
+      "path": "pages/student/registrations",
+      "style": {
+        "navigationBarTitleText": "我的报名"
+      }
+    },
+    {
+      "path": "pages/student/group/create",
+      "style": {
+        "navigationBarTitleText": "我要拼班"
+      }
+    },
+    {
+      "path": "pages/student/group/detail",
+      "style": {
+        "navigationBarTitleText": "拼班详情"
+      }
+    },
+    {
+      "path": "pages/student/group/share",
+      "style": {
+        "navigationBarTitleText": "拼班邀请"
       }
     },
     {
@@ -34,6 +166,12 @@
       "path": "pages/mine/index",
       "style": {
         "navigationBarTitleText": "我的"
+      }
+    },
+    {
+      "path": "pages/mine/notifications",
+      "style": {
+        "navigationBarTitleText": "通知中心"
       }
     }
   ],

@@ -9,11 +9,13 @@ const identity = computed(() => auth.selectedIdentity);
 const children = computed(() => identity.value?.children || []);
 
 onShow(() => {
-  requireIdentity('GUARDIAN');
+  if (requireIdentity('GUARDIAN')) {
+    uni.reLaunch({ url: '/pages/student/home' });
+  }
 });
 
 function toMine() {
-  uni.navigateTo({ url: '/pages/mine/index' });
+  uni.reLaunch({ url: '/pages/mine/index' });
 }
 </script>
 
@@ -49,107 +51,104 @@ function toMine() {
 <style scoped>
 .page {
   min-height: 100vh;
-  padding: 36rpx 30rpx 60rpx;
-  background: #f8f3ea;
+  padding: 40rpx 32rpx 60rpx;
+  background: #f6f1e8;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  margin-bottom: 28rpx;
 }
 
 .caption {
   display: block;
   color: #22624c;
   font-size: 22rpx;
-  font-weight: 900;
+  font-weight: 800;
+  letter-spacing: 2rpx;
 }
 
 .name {
   display: block;
-  margin-top: 12rpx;
+  margin-top: 10rpx;
   color: #17211d;
-  font-size: 48rpx;
+  font-size: 40rpx;
   font-weight: 900;
-  letter-spacing: 0;
 }
 
 .mine {
-  width: 96rpx;
-  height: 62rpx;
+  width: 100rpx;
+  height: 64rpx;
   border-radius: 999rpx;
   background: #17211d;
   color: #fff;
   font-size: 24rpx;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .summary-card {
-  margin-top: 36rpx;
-  min-height: 232rpx;
   padding: 34rpx;
-  border-radius: 26rpx;
-  background: #285c7f;
+  border-radius: 22rpx;
+  background: linear-gradient(135deg, #1E3A5F 0%, #285c7f 100%);
   color: #fff;
 }
 
 .number {
   display: block;
-  font-size: 72rpx;
+  font-size: 68rpx;
   font-weight: 900;
-  letter-spacing: 0;
 }
 
 .summary-label {
   display: block;
-  margin-top: 10rpx;
-  color: #eaf2f6;
-  font-size: 28rpx;
+  margin-top: 8rpx;
+  color: rgba(255,255,255,0.7);
+  font-size: 26rpx;
 }
 
 .children {
-  margin-top: 32rpx;
+  margin-top: 28rpx;
 }
 
 .section-title {
   display: block;
-  margin-bottom: 18rpx;
+  margin-bottom: 16rpx;
   color: #17211d;
-  font-size: 32rpx;
+  font-size: 30rpx;
   font-weight: 900;
 }
 
 .empty {
   padding: 34rpx;
-  border-radius: 22rpx;
+  border-radius: 18rpx;
   background: #fffcf5;
-  color: #6f756f;
+  color: #AAA;
   font-size: 26rpx;
 }
 
 .child-card {
-  min-height: 128rpx;
+  min-height: 120rpx;
   padding: 24rpx;
-  margin-bottom: 18rpx;
+  margin-bottom: 14rpx;
   display: flex;
   align-items: center;
-  gap: 22rpx;
-  border: 2rpx solid #ded3bf;
-  border-radius: 22rpx;
+  gap: 20rpx;
+  border-radius: 18rpx;
   background: #fffcf5;
 }
 
 .child-avatar {
-  width: 78rpx;
-  height: 78rpx;
+  width: 74rpx;
+  height: 74rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 20rpx;
+  border-radius: 18rpx;
   background: #f0b84d;
   color: #17211d;
-  font-size: 30rpx;
+  font-size: 28rpx;
   font-weight: 900;
 }
 
@@ -161,14 +160,14 @@ function toMine() {
 .child-name {
   display: block;
   color: #17211d;
-  font-size: 30rpx;
+  font-size: 29rpx;
   font-weight: 900;
 }
 
 .child-meta {
   display: block;
-  margin-top: 8rpx;
-  color: #6f756f;
-  font-size: 24rpx;
+  margin-top: 6rpx;
+  color: #AAA;
+  font-size: 23rpx;
 }
 </style>

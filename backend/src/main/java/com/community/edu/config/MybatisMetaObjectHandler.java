@@ -1,6 +1,10 @@
 package com.community.edu.config;
 
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
+
+/**
+ * MyBatis 元对象处理器。自动填充创建人、更新人等字段。
+ */
 import com.community.edu.common.context.CurrentUser;
 import com.community.edu.common.context.CurrentUserHolder;
 import java.time.OffsetDateTime;

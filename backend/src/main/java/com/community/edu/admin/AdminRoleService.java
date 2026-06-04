@@ -26,6 +26,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+/**
+ * 角色权限管理服务。处理角色的CRUD及权限授权。
+ */
 @Service
 @RequiredArgsConstructor
 public class AdminRoleService {

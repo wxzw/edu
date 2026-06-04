@@ -21,6 +21,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+/**
+ * 小程序身份服务。处理可用身份查询及默认身份选择。
+ */
 @Service
 @RequiredArgsConstructor
 public class MiniappIdentityService {

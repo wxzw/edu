@@ -1,17 +1,15 @@
 import { useAuthStore } from '@/stores/auth';
 import type { ApiResponse } from '@/types/api';
 
-const DEFAULT_BASE_URL = 'http://localhost:18055';
+const DEFAULT_BASE_URL = 'http://localhost:8055';
 
-function apiBaseUrl() {
+export function apiBaseUrl() {
   return import.meta.env.VITE_API_BASE_URL || DEFAULT_BASE_URL;
 }
 
-export function request<T>(options: UniApp.RequestOptions): Promise<T> {
+export function authHeaders() {
   const auth = useAuthStore();
-  const headers: Record<string, string> = {
-    ...(options.header as Record<string, string> | undefined),
-  };
+  const headers: Record<string, string> = {};
   if (auth.accessToken) {
     headers.Authorization = `Bearer ${auth.accessToken}`;
   }
@@ -19,9 +17,21 @@ export function request<T>(options: UniApp.RequestOptions): Promise<T> {
     headers['X-Campus-Id'] = String(auth.selectedIdentity.campusId);
     headers['X-Identity-Type'] = auth.selectedIdentity.identityType;
     headers['X-Identity-Id'] = String(auth.selectedIdentity.identityId);
+    if (auth.currentStudentId) {
+      headers['X-Student-Id'] = String(auth.currentStudentId);
+    }
   } else if (auth.userInfo?.defaultCampusId) {
     headers['X-Campus-Id'] = String(auth.userInfo.defaultCampusId);
   }
+  return headers;
+}
+
+export function request<T>(options: UniApp.RequestOptions): Promise<T> {
+  const headers: Record<string, string> = {
+    ...(options.header as Record<string, string> | undefined),
+    ...authHeaders(),
+  };
+  const auth = useAuthStore();
 
   return new Promise<T>((resolve, reject) => {
     uni.request({

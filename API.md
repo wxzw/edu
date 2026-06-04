@@ -4,7 +4,7 @@
 
 ## 接口概述
 
-- **基础路径**: `http://localhost:18055`
+- **基础路径**: `http://localhost:8055`
 - **认证方式**: JWT Bearer Token
 - **请求格式**: JSON
 - **响应格式**: JSON
@@ -332,11 +332,15 @@ X-Campus-Id: <campus_id>
 
 > 权限要求：`system:campus`
 
-### 分页查询校区
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/admin/campuses` | 分页查询校区 |
+| GET | `/api/admin/campuses/{id}` | 获取校区详情 |
+| POST | `/api/admin/campuses` | 创建校区 |
+| PUT | `/api/admin/campuses/{id}` | 更新校区 |
+| PATCH | `/api/admin/campuses/{id}/status` | 变更校区状态 |
 
-**GET** `/api/admin/campuses`
-
-**请求参数**：
+**请求参数**（分页查询）：
 
 | 参数 | 类型 | 必填 | 描述 |
 |------|------|------|------|
@@ -345,107 +349,22 @@ X-Campus-Id: <campus_id>
 | keyword | string | 否 | 搜索关键词（名称/编码） |
 | status | string | 否 | 状态筛选 |
 
-**响应示例**：
-
-```json
-{
-  "code": 0,
-  "message": "success",
-  "data": {
-    "total": 5,
-    "pageNo": 1,
-    "pageSize": 10,
-    "list": [
-      {
-        "id": 1,
-        "code": "HQ",
-        "name": "总部校区",
-        "shortName": "总部",
-        "contactName": "李经理",
-        "contactPhone": "13800138000",
-        "address": "北京市朝阳区xxx",
-        "latitude": 39.9042,
-        "longitude": 116.4074,
-        "businessHours": "周一至周日 9:00-21:00",
-        "status": "ENABLED",
-        "createdAt": "2024-01-01T00:00:00Z"
-      }
-    ]
-  }
-}
-```
-
----
-
-### 获取校区详情
-
-**GET** `/api/admin/campuses/{id}`
-
-**路径参数**：
-
-| 参数 | 类型 | 描述 |
-|------|------|------|
-| id | integer | 校区ID |
-
----
-
-### 创建校区
-
-**POST** `/api/admin/campuses`
-
-**请求体**：
-
-```json
-{
-  "code": "BJ001",
-  "name": "北京朝阳校区",
-  "shortName": "朝阳",
-  "contactName": "王经理",
-  "contactPhone": "13900139000",
-  "address": "北京市朝阳区xxx街道",
-  "latitude": 39.92,
-  "longitude": 116.43,
-  "businessHours": "周一至周日 9:00-21:00"
-}
-```
-
----
-
-### 更新校区
-
-**PUT** `/api/admin/campuses/{id}`
-
-**请求体**：同创建校区
-
----
-
-### 变更校区状态
-
-**PATCH** `/api/admin/campuses/{id}/status`
-
-**请求体**：
-
-```json
-{
-  "status": "DISABLED"
-}
-```
-
-| 参数 | 类型 | 必填 | 描述 |
-|------|------|------|------|
-| status | string | 是 | 状态：ENABLED/DISABLED |
-
 ---
 
 ## 用户管理接口
 
 > 权限要求：`system:user`
 
-### 分页查询用户
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/admin/users` | 分页查询用户 |
+| GET | `/api/admin/users/{id}` | 获取用户详情 |
+| POST | `/api/admin/users` | 创建用户 |
+| PUT | `/api/admin/users/{id}` | 更新用户 |
+| PATCH | `/api/admin/users/{id}/password` | 重置密码 |
+| PATCH | `/api/admin/users/{id}/status` | 变更用户状态 |
 
-**GET** `/api/admin/users`
-
-**请求参数**：
+**请求参数**（分页查询）：
 
 | 参数 | 类型 | 必填 | 描述 |
 |------|------|------|------|
@@ -455,47 +374,7 @@ X-Campus-Id: <campus_id>
 | accountType | string | 否 | 账号类型筛选 |
 | status | string | 否 | 状态筛选 |
 
-**响应示例**：
-
-```json
-{
-  "code": 0,
-  "message": "success",
-  "data": {
-    "total": 50,
-    "pageNo": 1,
-    "pageSize": 10,
-    "list": [
-      {
-        "id": 1,
-        "username": "admin",
-        "realName": "系统管理员",
-        "phone": "13800138000",
-        "email": "admin@example.com",
-        "avatarUrl": null,
-        "accountType": "ADMIN",
-        "status": "ENABLED",
-        "lastLoginAt": "2024-01-15T10:30:00Z",
-        "roles": ["SUPER_ADMIN"]
-      }
-    ]
-  }
-}
-```
-
----
-
-### 获取用户详情
-
-**GET** `/api/admin/users/{id}`
-
----
-
-### 创建用户
-
-**POST** `/api/admin/users`
-
-**请求体**：
+**创建用户请求体**：
 
 ```json
 {
@@ -510,132 +389,22 @@ X-Campus-Id: <campus_id>
 }
 ```
 
-| 参数 | 类型 | 必填 | 描述 |
-|------|------|------|------|
-| username | string | 是 | 用户名 |
-| password | string | 是 | 初始密码 |
-| realName | string | 是 | 姓名 |
-| phone | string | 否 | 手机号 |
-| email | string | 否 | 邮箱 |
-| accountType | string | 是 | 账号类型 |
-| roleIds | array | 否 | 角色ID列表 |
-| campusIds | array | 否 | 可访问校区ID列表 |
-
----
-
-### 更新用户
-
-**PUT** `/api/admin/users/{id}`
-
----
-
-### 重置密码
-
-**PATCH** `/api/admin/users/{id}/password`
-
-**请求体**：
-
-```json
-{
-  "newPassword": "newPassword123"
-}
-```
-
----
-
-### 变更用户状态
-
-**PATCH** `/api/admin/users/{id}/status`
-
-**请求体**：
-
-```json
-{
-  "status": "DISABLED"
-}
-```
-
 ---
 
 ## 角色权限接口
 
 > 权限要求：`system:role`
 
-### 分页查询角色
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/admin/roles` | 分页查询角色 |
+| GET | `/api/admin/roles/{id}` | 获取角色详情 |
+| POST | `/api/admin/roles` | 创建角色 |
+| PUT | `/api/admin/roles/{id}` | 更新角色 |
+| PATCH | `/api/admin/roles/{id}/permissions` | 角色授权 |
+| GET | `/api/admin/roles/permission-tree` | 获取权限树 |
 
-**GET** `/api/admin/roles`
-
-**请求参数**：
-
-| 参数 | 类型 | 必填 | 描述 |
-|------|------|------|------|
-| pageNo | integer | 是 | 页码 |
-| pageSize | integer | 是 | 每页条数 |
-| keyword | string | 否 | 搜索关键词 |
-| status | string | 否 | 状态筛选 |
-
-**响应示例**：
-
-```json
-{
-  "code": 0,
-  "message": "success",
-  "data": {
-    "total": 10,
-    "pageNo": 1,
-    "pageSize": 10,
-    "list": [
-      {
-        "id": 1,
-        "code": "SUPER_ADMIN",
-        "name": "超级管理员",
-        "scopeType": "SYSTEM",
-        "dataScope": "SYSTEM",
-        "status": "ENABLED",
-        "remark": "系统最高权限角色"
-      }
-    ]
-  }
-}
-```
-
----
-
-### 获取角色详情
-
-**GET** `/api/admin/roles/{id}`
-
----
-
-### 创建角色
-
-**POST** `/api/admin/roles`
-
-**请求体**：
-
-```json
-{
-  "code": "CAMPUS_ADMIN",
-  "name": "校区管理员",
-  "scopeType": "CAMPUS",
-  "dataScope": "CAMPUS",
-  "remark": "校区运营管理员"
-}
-```
-
----
-
-### 更新角色
-
-**PUT** `/api/admin/roles/{id}`
-
----
-
-### 角色授权
-
-**PATCH** `/api/admin/roles/{id}/permissions`
-
-**请求体**：
+**角色授权请求体**：
 
 ```json
 {
@@ -643,15 +412,7 @@ X-Campus-Id: <campus_id>
 }
 ```
 
----
-
-### 获取权限树
-
-**GET** `/api/admin/roles/permission-tree`
-
-获取完整的权限树结构，用于权限配置界面。
-
-**响应示例**：
+**权限树响应示例**：
 
 ```json
 {
@@ -697,11 +458,15 @@ X-Campus-Id: <campus_id>
 
 > 权限要求：`edu:teacher`
 
-### 分页查询老师
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/admin/teachers` | 分页查询老师 |
+| GET | `/api/admin/teachers/{id}` | 获取老师详情 |
+| POST | `/api/admin/teachers` | 创建老师 |
+| PUT | `/api/admin/teachers/{id}` | 更新老师 |
+| PATCH | `/api/admin/teachers/{id}/status` | 变更老师状态 |
 
-**GET** `/api/admin/teachers`
-
-**请求参数**：
+**请求参数**（分页查询）：
 
 | 参数 | 类型 | 必填 | 描述 |
 |------|------|------|------|
@@ -710,84 +475,21 @@ X-Campus-Id: <campus_id>
 | keyword | string | 否 | 搜索关键词（姓名/工号） |
 | status | string | 否 | 状态筛选 |
 
-**响应示例**：
-
-```json
-{
-  "code": 0,
-  "message": "success",
-  "data": {
-    "total": 20,
-    "pageNo": 1,
-    "pageSize": 10,
-    "list": [
-      {
-        "id": 1,
-        "employeeNo": "T001",
-        "name": "张老师",
-        "gender": "MALE",
-        "phone": "13900139001",
-        "title": "高级教师",
-        "specialties": ["自然拼读", "KET/PET"],
-        "intro": "10年英语教学经验",
-        "hireDate": "2020-01-01",
-        "status": "ENABLED"
-      }
-    ]
-  }
-}
-```
-
----
-
-### 获取老师详情
-
-**GET** `/api/admin/teachers/{id}`
-
----
-
-### 创建老师
-
-**POST** `/api/admin/teachers`
-
-**请求体**：
-
-```json
-{
-  "employeeNo": "T002",
-  "name": "李老师",
-  "gender": "FEMALE",
-  "phone": "13900139002",
-  "title": "中级教师",
-  "specialties": ["绘本阅读", "口语表达"],
-  "intro": "5年少儿英语教学经验",
-  "hireDate": "2023-06-01"
-}
-```
-
----
-
-### 更新老师
-
-**PUT** `/api/admin/teachers/{id}`
-
----
-
-### 变更老师状态
-
-**PATCH** `/api/admin/teachers/{id}/status`
-
 ---
 
 ## 课程管理接口
 
 > 权限要求：`edu:course`
 
-### 分页查询课程
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/admin/courses` | 分页查询课程 |
+| GET | `/api/admin/courses/{id}` | 获取课程详情 |
+| POST | `/api/admin/courses` | 创建课程 |
+| PUT | `/api/admin/courses/{id}` | 更新课程 |
+| PATCH | `/api/admin/courses/{id}/status` | 变更课程状态 |
 
-**GET** `/api/admin/courses`
-
-**请求参数**：
+**请求参数**（分页查询）：
 
 | 参数 | 类型 | 必填 | 描述 |
 |------|------|------|------|
@@ -797,171 +499,24 @@ X-Campus-Id: <campus_id>
 | courseSystem | string | 否 | 课程体系筛选 |
 | status | string | 否 | 状态筛选 |
 
-**响应示例**：
-
-```json
-{
-  "code": 0,
-  "message": "success",
-  "data": {
-    "total": 15,
-    "pageNo": 1,
-    "pageSize": 10,
-    "list": [
-      {
-        "id": 1,
-        "courseCode": "PHONICS-L1",
-        "courseSystem": "自然拼读",
-        "name": "自然拼读 Level 1",
-        "levelName": "L1",
-        "targetAgeMin": 4,
-        "targetAgeMax": 6,
-        "gradeScope": "幼儿园中班-大班",
-        "totalHours": 40,
-        "unitPrice": 150,
-        "packagePrice": 5000,
-        "description": "系统学习自然拼读规则",
-        "status": "ENABLED"
-      }
-    ]
-  }
-}
-```
-
----
-
-### 获取课程详情
-
-**GET** `/api/admin/courses/{id}`
-
----
-
-### 创建课程
-
-**POST** `/api/admin/courses`
-
-**请求体**：
-
-```json
-{
-  "courseCode": "KET-STARTER",
-  "courseSystem": "剑桥英语",
-  "name": "KET 备考基础班",
-  "levelName": "Starter",
-  "targetAgeMin": 8,
-  "targetAgeMax": 10,
-  "gradeScope": "小学3-4年级",
-  "totalHours": 60,
-  "unitPrice": 200,
-  "packagePrice": 10000,
-  "description": "KET考试基础课程"
-}
-```
-
----
-
-### 更新课程
-
-**PUT** `/api/admin/courses/{id}`
-
----
-
-### 变更课程状态
-
-**PATCH** `/api/admin/courses/{id}/status`
-
 ---
 
 ## 班级管理接口
 
 > 权限要求：`edu:class`
 
-### 分页查询班级
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/admin/classes` | 分页查询班级 |
+| GET | `/api/admin/classes/{id}` | 获取班级详情 |
+| POST | `/api/admin/classes` | 创建班级 |
+| PUT | `/api/admin/classes/{id}` | 更新班级 |
+| PATCH | `/api/admin/classes/{id}/status` | 变更班级状态 |
+| GET | `/api/admin/classes/{id}/students` | 获取班级学生列表 |
+| POST | `/api/admin/classes/{id}/students` | 添加班级学生 |
+| DELETE | `/api/admin/classes/{id}/students/{studentId}` | 移除班级学生 |
 
-**GET** `/api/admin/classes`
-
-**请求参数**：
-
-| 参数 | 类型 | 必填 | 描述 |
-|------|------|------|------|
-| pageNo | integer | 是 | 页码 |
-| pageSize | integer | 是 | 每页条数 |
-| keyword | string | 否 | 搜索关键词 |
-| courseId | integer | 否 | 课程ID筛选 |
-| status | string | 否 | 状态筛选 |
-
-**响应示例**：
-
-```json
-{
-  "code": 0,
-  "message": "success",
-  "data": {
-    "total": 30,
-    "pageNo": 1,
-    "pageSize": 10,
-    "list": [
-      {
-        "id": 1,
-        "classNo": "PH-L1-A",
-        "name": "自然拼读L1-A班",
-        "courseId": 1,
-        "courseName": "自然拼读 Level 1",
-        "headTeacherId": 1,
-        "headTeacherName": "张老师",
-        "classroom": "A教室",
-        "startDate": "2024-03-01",
-        "endDate": "2024-06-30",
-        "maxStudents": 8,
-        "currentStudents": 6,
-        "status": "ONGOING"
-      }
-    ]
-  }
-}
-```
-
----
-
-### 获取班级详情
-
-**GET** `/api/admin/classes/{id}`
-
----
-
-### 创建班级
-
-**POST** `/api/admin/classes`
-
-**请求体**：
-
-```json
-{
-  "courseId": 1,
-  "classNo": "PH-L1-B",
-  "name": "自然拼读L1-B班",
-  "headTeacherId": 2,
-  "classroom": "B教室",
-  "startDate": "2024-04-01",
-  "endDate": "2024-07-31",
-  "maxStudents": 8,
-  "remark": "新开班级"
-}
-```
-
----
-
-### 更新班级
-
-**PUT** `/api/admin/classes/{id}`
-
----
-
-### 变更班级状态
-
-**PATCH** `/api/admin/classes/{id}/status`
-
-**状态值**：
+**班级状态值**：
 - `PREPARING` - 准备中
 - `ENROLLING` - 招生中
 - `ONGOING` - 进行中
@@ -970,50 +525,97 @@ X-Campus-Id: <campus_id>
 
 ---
 
-### 获取班级学生列表
-
-**GET** `/api/admin/classes/{id}/students`
-
-**响应示例**：
-
-```json
-{
-  "code": 0,
-  "message": "success",
-  "data": [
-    {
-      "studentId": 1,
-      "studentNo": "S001",
-      "name": "小明",
-      "nickname": "小明明",
-      "gender": "MALE",
-      "grade": "幼儿园大班",
-      "joinDate": "2024-03-01",
-      "status": "ACTIVE"
-    }
-  ]
-}
-```
-
----
-
 ## 学生管理接口
 
 > 权限要求：`edu:student`
 
-### 分页查询学生
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/admin/students` | 分页查询学生 |
+| GET | `/api/admin/students/{id}` | 获取学生详情 |
+| POST | `/api/admin/students` | 创建学生 |
+| PUT | `/api/admin/students/{id}` | 更新学生 |
+| PATCH | `/api/admin/students/{id}/status` | 变更学生状态 |
 
-**GET** `/api/admin/students`
+---
 
-**请求参数**：
+## 资料库接口
 
-| 参数 | 类型 | 必填 | 描述 |
-|------|------|------|------|
-| pageNo | integer | 是 | 页码 |
-| pageSize | integer | 是 | 每页条数 |
-| keyword | string | 否 | 搜索关键词（姓名/学号） |
-| grade | string | 否 | 年级筛选 |
-| status | string | 否 | 状态筛选 |
+> 权限要求：`resource:material`
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| POST | `/api/admin/files/local` | 本地上传文件 |
+| GET | `/api/admin/material-categories` | 获取资料分类列表 |
+| POST | `/api/admin/material-categories` | 创建资料分类 |
+| PUT | `/api/admin/material-categories/{id}` | 更新资料分类 |
+| GET | `/api/admin/materials` | 分页查询资料 |
+| GET | `/api/admin/materials/{id}` | 获取资料详情 |
+| POST | `/api/admin/materials` | 发布资料 |
+| PUT | `/api/admin/materials/{id}` | 更新资料 |
+| PATCH | `/api/admin/materials/{id}/status` | 变更资料状态 |
+
+---
+
+## 活动管理接口
+
+> 权限要求：`operation:activity`
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/admin/activities` | 分页查询活动 |
+| GET | `/api/admin/activities/{id}` | 获取活动详情 |
+| POST | `/api/admin/activities` | 创建活动 |
+| PUT | `/api/admin/activities/{id}` | 更新活动 |
+| PATCH | `/api/admin/activities/{id}/status` | 变更活动状态 |
+| GET | `/api/admin/activity-registrations` | 查询报名列表 |
+
+---
+
+## 拼班管理接口
+
+> 权限要求：`operation:group`
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/admin/group-requests` | 查询拼班列表 |
+| POST | `/api/admin/group-requests/{id}/trial` | 安排试听 |
+| POST | `/api/admin/group-trials/{trialId}/feedback` | 试听反馈 |
+
+---
+
+## 财务管理接口
+
+> 权限要求：`finance:order` / `finance:payment`
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/admin/orders` | 分页查询订单 |
+| GET | `/api/admin/payments` | 分页查询支付记录 |
+
+---
+
+## 通知管理接口
+
+> 权限要求：`system:notification`
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/admin/notifications` | 分页查询通知 |
+| POST | `/api/admin/notifications` | 发布通知 |
+
+---
+
+## 学生端接口
+
+> 认证要求：JWT Bearer Token（学生/家长身份）
+> 数据隔离：按当前选中的学生自动过滤数据
+
+### 学生仪表盘
+
+**GET** `/api/student/dashboard`
+
+聚合接口，一次返回首页所需全部数据。
 
 **响应示例**：
 
@@ -1022,69 +624,303 @@ X-Campus-Id: <campus_id>
   "code": 0,
   "message": "success",
   "data": {
-    "total": 100,
-    "pageNo": 1,
-    "pageSize": 10,
-    "list": [
+    "profile": {
+      "studentId": 1,
+      "campusId": 1,
+      "name": "小明",
+      "nickname": "小明明",
+      "grade": "幼儿园大班",
+      "school": "朝阳幼儿园",
+      "campusName": "总部校区",
+      "campusShortName": "总部",
+      "classNames": "自然拼读L1-A班"
+    },
+    "children": [
       {
-        "id": 1,
-        "studentNo": "S001",
+        "studentId": 1,
         "name": "小明",
-        "nickname": "小明明",
-        "avatarUrl": null,
-        "gender": "MALE",
-        "birthday": "2018-05-15",
         "grade": "幼儿园大班",
-        "school": "朝阳幼儿园",
-        "englishLevel": "零基础",
-        "learningGoal": "培养英语兴趣",
-        "status": "ACTIVE",
-        "enrolledAt": "2024-01-01"
+        "relation": "爸爸"
       }
-    ]
+    ],
+    "currentStudentId": 1,
+    "lessonSummary": {
+      "totalRemainingHours": 32.5,
+      "lowBalance": false
+    },
+    "nextLesson": {
+      "id": 10,
+      "topic": "字母组合发音复习",
+      "lessonDate": "2024-06-03",
+      "startTime": "09:00:00",
+      "endTime": "10:30:00",
+      "teacherName": "张老师",
+      "classroom": "A教室"
+    },
+    "todos": [
+      {
+        "bizType": "HOMEWORK_TO_SUBMIT",
+        "bizId": 5,
+        "title": "短元音练习",
+        "content": "截止今晚 21:00"
+      }
+    ],
+    "activeGroupRequest": {
+      "id": 1,
+      "targetSystem": "剑桥KET",
+      "currentMembers": 3,
+      "requiredMembers": 4,
+      "status": "FORMING"
+    }
   }
 }
 ```
 
 ---
 
-### 获取学生详情
+### 作业接口
 
-**GET** `/api/admin/students/{id}`
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/student/homeworks` | 作业列表 |
+| GET | `/api/student/homeworks/{id}` | 作业详情 |
+| POST | `/api/student/homeworks/{id}/submit` | 提交作业 |
 
----
-
-### 创建学生
-
-**POST** `/api/admin/students`
-
-**请求体**：
+**提交作业请求体**：
 
 ```json
 {
-  "studentNo": "S002",
-  "name": "小红",
-  "nickname": "小红红",
-  "gender": "FEMALE",
-  "birthday": "2019-03-20",
-  "grade": "幼儿园中班",
-  "school": "海淀幼儿园",
-  "englishLevel": "有基础",
-  "learningGoal": "提升口语能力"
+  "content": "老师您好，这是朗读录音",
+  "files": [
+    {
+      "fileId": 201,
+      "mediaType": "AUDIO",
+      "sortOrder": 1
+    }
+  ]
+}
+```
+
+| 参数 | 类型 | 必填 | 描述 |
+|------|------|------|------|
+| content | string | 否 | 文字内容 |
+| files | array | 否 | 附件列表 |
+| files[].fileId | integer | 是 | 文件ID |
+| files[].mediaType | string | 是 | 媒体类型：IMAGE/AUDIO/VIDEO |
+| files[].sortOrder | integer | 否 | 排序 |
+
+---
+
+### 课程表接口
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/student/schedules` | 课程表 |
+| GET | `/api/student/lesson-hour-accounts` | 课时账户 |
+| GET | `/api/student/lesson-hour-records` | 课时流水 |
+
+**课程表请求参数**：
+
+| 参数 | 类型 | 必填 | 描述 |
+|------|------|------|------|
+| startDate | string | 否 | 开始日期（ISO格式） |
+| endDate | string | 否 | 结束日期（ISO格式） |
+
+---
+
+### 拼班接口
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/student/group-requests` | 我的拼班列表 |
+| POST | `/api/student/group-requests` | 发起拼班 |
+| GET | `/api/student/group-requests/{id}` | 拼班详情 |
+| GET | `/api/student/group-requests/by-share-code/{shareCode}` | 通过分享码获取拼班 |
+| POST | `/api/student/group-requests/{id}/join` | 加入拼班 |
+| POST | `/api/student/group-requests/{id}/poster` | 生成拼班海报 |
+
+**发起拼班请求体**：
+
+```json
+{
+  "childAge": 8.5,
+  "grade": "三年级",
+  "targetSystem": "剑桥KET体系",
+  "englishLevel": "校内同步",
+  "preferredTimes": ["周六上午", "周日下午"],
+  "remark": "希望9月开学前开始",
+  "contactPhone": "13800138000"
+}
+```
+
+| 参数 | 类型 | 必填 | 描述 |
+|------|------|------|------|
+| childAge | number | 是 | 孩子年龄，支持小数 |
+| grade | string | 是 | 年级 |
+| targetSystem | string | 是 | 目标课程体系 |
+| englishLevel | string | 是 | 英语基础 |
+| preferredTimes | array | 是 | 可选上课时间 |
+| remark | string | 否 | 备注 |
+| contactPhone | string | 否 | 联系电话 |
+
+---
+
+### 活动接口
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/student/activities` | 活动列表 |
+| GET | `/api/student/activities/{id}` | 活动详情 |
+| POST | `/api/student/activities/{id}/join` | 活动报名 |
+| GET | `/api/student/registrations` | 我的报名 |
+
+---
+
+### 资料接口
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/student/material-categories` | 资料分类 |
+| GET | `/api/student/materials` | 资料列表 |
+| GET | `/api/student/materials/{id}` | 资料详情 |
+| GET | `/api/student/materials/{id}/preview` | 资料预览 |
+| GET | `/api/student/materials/{id}/download` | 资料下载 |
+
+---
+
+### 订单接口
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/student/orders/{id}` | 订单详情 |
+| POST | `/api/student/orders/{id}/pay` | 订单支付 |
+
+---
+
+### 通知接口
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/student/notifications` | 通知列表 |
+| POST | `/api/student/notifications/{id}/read` | 标记已读 |
+| POST | `/api/student/notifications/read-all` | 全部已读 |
+
+**通知请求参数**：
+
+| 参数 | 类型 | 必填 | 描述 |
+|------|------|------|------|
+| status | string | 否 | 状态筛选 |
+| limit | integer | 否 | 返回条数 |
+
+---
+
+## 教师端接口
+
+> 认证要求：JWT Bearer Token（老师身份）
+
+### 教师仪表盘
+
+**GET** `/api/teacher/dashboard`
+
+获取老师工作台首页数据。
+
+---
+
+### 班级管理
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/teacher/classes` | 班级列表 |
+| GET | `/api/teacher/classes/{id}` | 班级详情 |
+| GET | `/api/teacher/students/{id}` | 学生档案 |
+
+---
+
+### 作业管理
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/teacher/homeworks` | 作业列表 |
+| GET | `/api/teacher/homeworks/{id}` | 作业详情 |
+| POST | `/api/teacher/homeworks` | 创建作业 |
+| POST | `/api/teacher/homeworks/{id}/publish` | 发布作业 |
+| POST | `/api/teacher/homeworks/{id}/submissions/{submissionId}/comment` | 作业点评 |
+
+**创建作业请求体**：
+
+```json
+{
+  "classId": 1,
+  "title": "短元音练习",
+  "content": "朗读并录音短元音单词",
+  "deadline": "2024-06-03T21:00:00",
+  "attachments": []
+}
+```
+
+**作业点评请求体**：
+
+```json
+{
+  "commentText": "发音很标准！",
+  "rating": 5
 }
 ```
 
 ---
 
-### 更新学生
+### 考勤管理
 
-**PUT** `/api/admin/students/{id}`
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/teacher/schedules/today` | 今日考勤列表 |
+| GET | `/api/teacher/schedules/{id}/attendance` | 考勤详情 |
+| POST | `/api/teacher/schedules/{id}/attendance` | 批量考勤 |
+| POST | `/api/teacher/schedules/{id}/deduct` | 课时扣除 |
+
+**批量考勤请求体**：
+
+```json
+{
+  "studentAttendances": [
+    {
+      "studentId": 1,
+      "status": "PRESENT"
+    },
+    {
+      "studentId": 2,
+      "status": "ABSENT"
+    }
+  ]
+}
+```
+
+**课时扣除请求体**：
+
+```json
+{
+  "studentDeducts": [
+    {
+      "studentId": 1,
+      "hours": 1.5
+    }
+  ]
+}
+```
 
 ---
 
-### 变更学生状态
+### 课时记录
 
-**PATCH** `/api/admin/students/{id}/status`
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/teacher/lesson-hour-records` | 课时记录列表 |
+
+**请求参数**：
+
+| 参数 | 类型 | 必填 | 描述 |
+|------|------|------|------|
+| limit | integer | 否 | 返回条数 |
 
 ---
 
@@ -1137,6 +973,51 @@ sequenceDiagram
     Backend->>Miniapp: 返回选中身份信息
 ```
 
+### 学生端仪表盘加载流程
+
+```mermaid
+sequenceDiagram
+    participant Miniapp as 小程序
+    participant Backend as 后端服务
+    participant DB as PostgreSQL
+    
+    Miniapp->>Backend: GET /api/student/dashboard
+    Backend->>Backend: 验证Token + 学生身份
+    Backend->>Backend: StudentScopeService<br/>获取当前学生上下文
+    Backend->>DB: 查询学生档案
+    Backend->>DB: 查询课时账户汇总
+    Backend->>DB: 查询最近一课
+    Backend->>DB: 查询待办列表
+    Backend->>DB: 查询进行中拼班
+    Backend->>Miniapp: 聚合返回Dashboard
+```
+
+### 教师端考勤流程
+
+```mermaid
+sequenceDiagram
+    participant Miniapp as 小程序
+    participant Backend as 后端服务
+    participant DB as PostgreSQL
+    
+    Miniapp->>Backend: GET /api/teacher/schedules/today
+    Backend->>Backend: 验证Token + 老师身份
+    Backend->>DB: 查询今日课程
+    Backend->>Miniapp: 返回今日考勤列表
+    
+    Miniapp->>Backend: GET /api/teacher/schedules/{id}/attendance
+    Backend->>DB: 查询课程学生列表
+    Backend->>Miniapp: 返回考勤详情
+    
+    Miniapp->>Backend: POST /api/teacher/schedules/{id}/attendance
+    Backend->>DB: 保存考勤记录
+    Backend->>Miniapp: 返回成功
+    
+    Miniapp->>Backend: POST /api/teacher/schedules/{id}/deduct
+    Backend->>DB: 扣除学生课时
+    Backend->>Miniapp: 返回成功
+```
+
 ---
 
 ## 错误码说明
@@ -1162,5 +1043,5 @@ sequenceDiagram
 
 系统集成了 SpringDoc OpenAPI，可通过以下地址访问交互式 API 文档：
 
-- **Swagger UI**: http://localhost:18055/swagger-ui.html
-- **OpenAPI JSON**: http://localhost:18055/v3/api-docs
+- **Swagger UI**: http://localhost:8055/swagger-ui.html
+- **OpenAPI JSON**: http://localhost:8055/v3/api-docs

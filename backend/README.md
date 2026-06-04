@@ -29,6 +29,26 @@ mvn -s C:\Users\QB\.m2\settings.xml spring-boot:run
 & 'D:\Program Files\apache-maven-3.9.16\bin\mvn.cmd' -s C:\Users\QB\.m2\settings.xml spring-boot:run
 ```
 
+## 日志输出
+
+后端使用 Spring Boot 默认主流日志方案 `SLF4J + Logback`，配置文件为 `src/main/resources/logback-spring.xml`。
+
+默认日志目录为启动工作目录下的 `logs`。如果从 `D:\workspace\edu\backend` 启动，日志会写入 `D:\workspace\edu\backend\logs`；如果从项目根目录或 IDE 启动，相对路径会跟随对应的工作目录变化。
+
+建议本地固定指定日志目录：
+
+```powershell
+$env:LOG_PATH='D:\workspace\edu\backend\logs'
+mvn -s C:\Users\QB\.m2\settings.xml spring-boot:run
+```
+
+日志文件按天区分并按大小滚动：
+
+```text
+logs/edu-backend.2026-06-04.0.log
+logs/edu-backend-error.2026-06-04.0.log
+```
+
 ## 编译
 
 ```powershell

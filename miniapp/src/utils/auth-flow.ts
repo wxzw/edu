@@ -23,3 +23,16 @@ export function requireIdentity(identityType: IdentityType) {
   }
   return true;
 }
+
+export function requireStudentAccess() {
+  if (!requireLogin()) {
+    return false;
+  }
+  const auth = useAuthStore();
+  if (auth.selectedIdentity?.identityType === 'STUDENT' || auth.selectedIdentity?.identityType === 'GUARDIAN') {
+    auth.syncCurrentStudent();
+    return true;
+  }
+  switchToHome(auth.selectedIdentity?.identityType);
+  return false;
+}

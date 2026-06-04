@@ -18,6 +18,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+/**
+ * 学生端范围服务。处理学生身份解析及校区权限校验。
+ */
 @Service
 @RequiredArgsConstructor
 public class StudentScopeService {

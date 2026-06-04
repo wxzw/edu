@@ -16,6 +16,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 班级管理接口。提供班级的增删改查、学生管理等功能。
+ */
 @Validated
 @RestController
 @RequiredArgsConstructor

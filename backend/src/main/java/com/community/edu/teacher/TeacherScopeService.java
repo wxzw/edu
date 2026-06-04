@@ -11,6 +11,9 @@ import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+/**
+ * 老师端范围服务。处理老师身份解析及校区权限校验。
+ */
 @Service
 @RequiredArgsConstructor
 public class TeacherScopeService {

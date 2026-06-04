@@ -1,6 +1,10 @@
 package com.community.edu.common.response;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+
+/**
+ * 分页响应。封装分页查询的返回结果。
+ */
 import java.util.List;
 import lombok.Builder;
 import lombok.Getter;

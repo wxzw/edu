@@ -1,6 +1,10 @@
 package com.community.edu.common.exception;
 
 import com.community.edu.common.response.ApiResponse;
+
+/**
+ * 全局异常处理器。统一处理Controller层抛出的异常。
+ */
 import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;

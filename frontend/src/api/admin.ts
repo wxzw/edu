@@ -2,6 +2,10 @@ import { http } from './http';
 import type { PageResponse, StatusUpdateRequest } from '@/types/api';
 import type {
   AdminPageQuery,
+  ActivityForm,
+  ActivityRecord,
+  ActivityRegistrationRecord,
+  AdminFileInfo,
   CampusForm,
   CampusRecord,
   ClassForm,
@@ -9,6 +13,14 @@ import type {
   ClassStudentRecord,
   CourseForm,
   CourseRecord,
+  MaterialCategoryForm,
+  MaterialCategoryRecord,
+  MaterialForm,
+  MaterialRecord,
+  NotificationForm,
+  NotificationRecord,
+  OrderRecord,
+  PaymentRecord,
   PermissionNode,
   RoleForm,
   RoleRecord,
@@ -89,4 +101,54 @@ export const studentApi = {
   create: (payload: StudentForm) => create<StudentRecord, StudentForm>('/api/admin/students', payload),
   update: (id: number, payload: StudentForm) => update<StudentRecord, StudentForm>('/api/admin/students', id, payload),
   status: (id: number, payload: StatusUpdateRequest) => status('/api/admin/students', id, payload),
+};
+
+export const fileApi = {
+  uploadLocal: (file: File, bizType = 'MATERIAL') => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('bizType', bizType);
+    return http.post<AdminFileInfo, AdminFileInfo>('/api/admin/files/local', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+};
+
+export const materialCategoryApi = {
+  list: () => http.get<MaterialCategoryRecord[], MaterialCategoryRecord[]>('/api/admin/material-categories'),
+  create: (payload: MaterialCategoryForm) =>
+    create<MaterialCategoryRecord, MaterialCategoryForm>('/api/admin/material-categories', payload),
+  update: (id: number, payload: MaterialCategoryForm) =>
+    update<MaterialCategoryRecord, MaterialCategoryForm>('/api/admin/material-categories', id, payload),
+};
+
+export const materialApi = {
+  page: (params: AdminPageQuery) => page<MaterialRecord>('/api/admin/materials', params),
+  detail: (id: number) => detail<MaterialRecord>('/api/admin/materials', id),
+  create: (payload: MaterialForm) => create<MaterialRecord, MaterialForm>('/api/admin/materials', payload),
+  update: (id: number, payload: MaterialForm) => update<MaterialRecord, MaterialForm>('/api/admin/materials', id, payload),
+  status: (id: number, payload: StatusUpdateRequest) => status('/api/admin/materials', id, payload),
+};
+
+export const activityApi = {
+  page: (params: AdminPageQuery) => page<ActivityRecord>('/api/admin/activities', params),
+  detail: (id: number) => detail<ActivityRecord>('/api/admin/activities', id),
+  create: (payload: ActivityForm) => create<ActivityRecord, ActivityForm>('/api/admin/activities', payload),
+  update: (id: number, payload: ActivityForm) => update<ActivityRecord, ActivityForm>('/api/admin/activities', id, payload),
+  status: (id: number, payload: StatusUpdateRequest) => status('/api/admin/activities', id, payload),
+  registrations: (params: AdminPageQuery) => page<ActivityRegistrationRecord>('/api/admin/activity-registrations', params),
+};
+
+export const orderApi = {
+  page: (params: AdminPageQuery) => page<OrderRecord>('/api/admin/orders', params),
+};
+
+export const paymentApi = {
+  page: (params: AdminPageQuery) => page<PaymentRecord>('/api/admin/payments', params),
+};
+
+export const notificationApi = {
+  page: (params: AdminPageQuery) => page<NotificationRecord>('/api/admin/notifications', params),
+  publish: (payload: NotificationForm) =>
+    http.post<{ sentCount: number }, { sentCount: number }>('/api/admin/notifications', payload),
 };

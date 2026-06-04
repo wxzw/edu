@@ -22,16 +22,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+/**
+ * 用户管理服务。处理用户的CRUD、密码重置及状态变更。
+ */
 @Service
 @RequiredArgsConstructor
 public class AdminUserService {
-
-    private static final String DEFAULT_PASSWORD = "123456";
 
     private final SysUserMapper userMapper;
     private final SysUserRoleMapper userRoleMapper;
     private final SysUserCampusMapper userCampusMapper;
     private final PasswordEncoder passwordEncoder;
+    private final com.community.edu.config.AppSecurityProperties securityProperties;
 
     public PageResponse<UserResponse> page(UserQuery query) {
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<SysUser>()
@@ -57,7 +59,7 @@ public class AdminUserService {
     public UserResponse create(UserRequest request) {
         SysUser user = new SysUser();
         apply(user, request);
-        user.setPasswordHash(encode(StringUtils.hasText(request.getPassword()) ? request.getPassword() : DEFAULT_PASSWORD));
+        user.setPasswordHash(encode(StringUtils.hasText(request.getPassword()) ? request.getPassword() : securityProperties.getDefaultPassword()));
         if (!StringUtils.hasText(user.getStatus())) {
             user.setStatus("ENABLED");
         }

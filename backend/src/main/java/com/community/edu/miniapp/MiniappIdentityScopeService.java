@@ -12,6 +12,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+/**
+ * 小程序身份范围服务。处理请求头身份解析及默认身份回退。
+ */
 @Service
 @RequiredArgsConstructor
 public class MiniappIdentityScopeService {

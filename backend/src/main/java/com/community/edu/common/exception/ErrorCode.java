@@ -1,6 +1,10 @@
 package com.community.edu.common.exception;
 
 import lombok.Getter;
+
+/**
+ * 错误码枚举。定义系统中所有业务错误码。
+ */
 import org.springframework.http.HttpStatus;
 
 @Getter

@@ -15,6 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+/**
+ * 校区管理服务。处理校区的CRUD操作及校区与用户关联管理。
+ */
 @Service
 @RequiredArgsConstructor
 public class AdminCampusService {

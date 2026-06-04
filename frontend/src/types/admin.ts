@@ -222,4 +222,186 @@ export interface AdminPageQuery extends PageQuery {
   accountType?: string;
   courseSystem?: string;
   courseId?: number;
+  categoryId?: number;
+  keyword?: string;
+  resourceType?: string;
+  studyType?: string;
+  visibility?: string;
+  status?: string;
+  orderType?: string;
+  payStatus?: string;
+  studentId?: number;
+  activityId?: number;
+  orderId?: number;
+  bizType?: string;
+  receiverStudentId?: number;
+}
+
+export interface AdminFileInfo {
+  id: number;
+  storageType: string;
+  objectKey: string;
+  url: string;
+  fileName: string;
+  contentType?: string;
+  fileSize: number;
+  bizType?: string;
+  status: string;
+  createdAt?: string;
+}
+
+export interface MaterialCategoryRecord {
+  id: number;
+  parentId?: number;
+  categoryType: string;
+  name: string;
+  sortOrder: number;
+  status: string;
+}
+
+export interface MaterialCategoryForm {
+  parentId?: number;
+  name: string;
+  sortOrder: number;
+  status: string;
+}
+
+export interface MaterialRecord {
+  id: number;
+  categoryId: number;
+  categoryName?: string;
+  title: string;
+  description?: string;
+  resourceType: string;
+  coverFileId?: number;
+  coverUrl?: string;
+  fileId: number;
+  fileName?: string;
+  ownerTeacherId?: number;
+  ownerTeacherName?: string;
+  visibility: string;
+  studyType: string;
+  allowDownload: boolean;
+  auditStatus: string;
+  status: string;
+  classIds: number[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MaterialForm {
+  categoryId?: number;
+  title: string;
+  description?: string;
+  resourceType: string;
+  coverFileId?: number;
+  fileId?: number;
+  ownerTeacherId?: number;
+  visibility: string;
+  studyType: string;
+  allowDownload: boolean;
+  status: string;
+  classIds: number[];
+}
+
+export interface ActivityRecord {
+  id: number;
+  title: string;
+  description?: string;
+  coverFileId?: number;
+  coverUrl?: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  fee: number;
+  quota?: number;
+  registeredCount: number;
+  status: string;
+  publishedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ActivityForm {
+  title: string;
+  description?: string;
+  coverFileId?: number;
+  startTime: string;
+  endTime: string;
+  location: string;
+  fee: number;
+  quota?: number;
+  status: string;
+}
+
+export interface ActivityRegistrationRecord {
+  id: number;
+  activityId: number;
+  activityTitle: string;
+  studentId: number;
+  studentName: string;
+  guardianId?: number;
+  orderId?: number;
+  registrationNo: string;
+  amount: number;
+  status: string;
+  registeredAt: string;
+  payStatus?: string;
+}
+
+export interface OrderRecord {
+  id: number;
+  orderNo: string;
+  orderType: string;
+  studentId?: number;
+  studentName?: string;
+  guardianId?: number;
+  activityId?: number;
+  activityTitle?: string;
+  totalAmount: number;
+  discountAmount: number;
+  paidAmount: number;
+  payStatus: string;
+  payChannel?: string;
+  transactionNo?: string;
+  payTime?: string;
+  status: string;
+  createdAt?: string;
+}
+
+export interface PaymentRecord {
+  id: number;
+  orderId: number;
+  orderNo: string;
+  paymentNo: string;
+  payChannel: string;
+  amount: number;
+  transactionNo?: string;
+  status: string;
+  paidAt?: string;
+  createdAt?: string;
+}
+
+export interface NotificationRecord {
+  id: number;
+  receiverUserId?: number;
+  receiverStudentId?: number;
+  receiverStudentName?: string;
+  bizType: string;
+  bizId?: number;
+  title: string;
+  content?: string;
+  status: string;
+  readAt?: string;
+  createdAt?: string;
+}
+
+export interface NotificationForm {
+  targetType: string;
+  classId?: number;
+  studentId?: number;
+  title: string;
+  content?: string;
+  bizType?: string;
+  bizId?: number;
 }
