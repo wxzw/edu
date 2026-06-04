@@ -1,6 +1,10 @@
 package com.community.edu.security;
 
 import com.community.edu.common.context.CurrentUser;
+
+/**
+ * JWT Token 提供器。负责创建和解析访问Token及刷新Token。
+ */
 import com.community.edu.common.exception.BizException;
 import com.community.edu.common.exception.ErrorCode;
 import com.community.edu.config.AppSecurityProperties;

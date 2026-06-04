@@ -1,6 +1,10 @@
 package com.community.edu.config;
 
 import com.baomidou.mybatisplus.annotation.DbType;
+
+/**
+ * MyBatis-Plus 配置。配置分页插件等MyBatis-Plus扩展。
+ */
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.handler.TenantLineHandler;
 import com.baomidou.mybatisplus.extension.plugins.inner.OptimisticLockerInnerInterceptor;

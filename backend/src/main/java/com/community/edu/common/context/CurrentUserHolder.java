@@ -1,6 +1,10 @@
 package com.community.edu.common.context;
 
 import com.community.edu.common.exception.BizException;
+
+/**
+ * 当前用户持有者。提供线程安全的当前用户存取。
+ */
 import com.community.edu.common.exception.ErrorCode;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;

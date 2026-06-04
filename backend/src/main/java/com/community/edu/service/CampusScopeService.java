@@ -6,6 +6,9 @@ import com.community.edu.common.exception.BizException;
 import com.community.edu.common.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 
+/**
+ * 校区范围服务。处理当前校区上下文解析及权限校验。
+ */
 @Service
 public class CampusScopeService {
 

@@ -1,5 +1,5 @@
 server:
-  port: 18055
+  port: 8055
   servlet:
     context-path: /
 
@@ -21,7 +21,7 @@ spring:
   data:
     redis:
       host: localhost
-      port: 16379
+      port: 6379
       database: 0
       timeout: 3s
   flyway:
@@ -65,6 +65,8 @@ app:
       mock-enabled: true
 
 logging:
+  file:
+    path: ${LOG_PATH:logs}
   level:
     root: info
     com.community.edu: debug

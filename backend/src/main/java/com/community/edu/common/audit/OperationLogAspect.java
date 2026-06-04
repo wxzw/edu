@@ -1,8 +1,13 @@
 package com.community.edu.common.audit;
 
 import com.community.edu.common.context.CampusContextHolder;
+
+/**
+ * 操作日志切面。拦截带@OperationLog注解的方法并记录日志。
+ */
 import com.community.edu.common.context.CurrentUser;
 import com.community.edu.common.context.CurrentUserHolder;
+import com.community.edu.common.util.WebUtils;
 import com.community.edu.entity.SysOperationLog;
 import com.community.edu.mapper.SysOperationLogMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -58,7 +63,7 @@ public class OperationLogAspect {
             logRecord.setBizType(operationLog.bizType());
             logRecord.setRequestMethod(request == null ? null : request.getMethod());
             logRecord.setRequestUri(request == null ? null : request.getRequestURI());
-            logRecord.setIp(request == null ? null : clientIp(request));
+            logRecord.setIp(request == null ? null : WebUtils.clientIp());
             logRecord.setUserAgent(request == null ? null : request.getHeader("User-Agent"));
             logRecord.setContent(objectMapper.writeValueAsString(new AuditContent(sanitizeArgs(joinPoint.getArgs()), costMillis)));
             logRecord.setResultStatus(resultStatus);
@@ -74,15 +79,6 @@ public class OperationLogAspect {
             return null;
         }
         return attributes.getRequest();
-    }
-
-    private String clientIp(HttpServletRequest request) {
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            return forwardedFor.split(",")[0].trim();
-        }
-        String realIp = request.getHeader("X-Real-IP");
-        return realIp == null || realIp.isBlank() ? request.getRemoteAddr() : realIp;
     }
 
     private List<Object> sanitizeArgs(Object[] args) {

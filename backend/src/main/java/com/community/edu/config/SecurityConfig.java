@@ -1,6 +1,10 @@
 package com.community.edu.config;
 
 import com.community.edu.security.JwtAuthenticationFilter;
+
+/**
+ * 安全配置。配置Spring Security的过滤器链、认证规则等。
+ */
 import com.community.edu.security.RestAccessDeniedHandler;
 import com.community.edu.security.RestAuthenticationEntryPoint;
 import com.community.edu.miniapp.wechat.WechatMiniappProperties;
@@ -40,8 +44,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(registry -> registry
                 .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/refresh").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/miniapp/auth/login").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/student/group-requests/by-share-code/**").permitAll()
                 .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/api/teacher/**").authenticated()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

@@ -22,6 +22,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 角色权限管理接口。提供角色的增删改查、权限授权等功能。
+ */
 @Validated
 @RestController
 @RequiredArgsConstructor

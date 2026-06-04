@@ -1,6 +1,10 @@
 package com.community.edu.common.security;
 
 import com.community.edu.common.context.CurrentUser;
+
+/**
+ * 权限切面。拦截带@RequirePermission注解的方法并进行权限校验。
+ */
 import com.community.edu.common.context.CurrentUserHolder;
 import com.community.edu.common.exception.BizException;
 import com.community.edu.common.exception.ErrorCode;

@@ -1,6 +1,10 @@
 package com.community.edu.security;
 
 import com.community.edu.common.exception.ErrorCode;
+
+/**
+ * REST 访问拒绝处理器。处理权限不足时的响应。
+ */
 import com.community.edu.common.response.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;

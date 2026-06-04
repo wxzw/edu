@@ -1,6 +1,10 @@
 package com.community.edu.security;
 
 import com.community.edu.common.exception.ErrorCode;
+
+/**
+ * REST 认证入口点。处理未认证请求的响应。
+ */
 import com.community.edu.common.response.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;

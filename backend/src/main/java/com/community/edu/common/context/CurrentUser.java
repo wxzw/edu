@@ -1,6 +1,10 @@
 package com.community.edu.common.context;
 
 import java.io.Serializable;
+
+/**
+ * 当前用户。封装已认证用户的基本信息及权限。
+ */
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;

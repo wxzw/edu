@@ -1,6 +1,10 @@
 package com.community.edu.common.trace;
 
 import jakarta.servlet.FilterChain;
+
+/**
+ * TraceId 过滤器。为每个请求生成唯一的追踪ID。
+ */
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

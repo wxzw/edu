@@ -16,6 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+/**
+ * 老师管理服务。处理老师的CRUD及状态变更。
+ */
 @Service
 @RequiredArgsConstructor
 public class AdminTeacherService {

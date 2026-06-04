@@ -26,6 +26,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+/**
+ * 班级管理服务。处理班级的CRUD、学生添加移除及人数管理。
+ */
 @Service
 @RequiredArgsConstructor
 public class AdminClassService {

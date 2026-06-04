@@ -5,10 +5,14 @@ import {
   CalendarClock,
   ChevronLeft,
   ChevronRight,
+  CreditCard,
+  Files,
   GraduationCap,
   LayoutDashboard,
   LogOut,
   Menu,
+  PartyPopper,
+  Bell,
   ShieldCheck,
   User,
   UserCog,
@@ -41,6 +45,10 @@ const navItems: NavItem[] = [
   { path: '/courses', label: '课程', icon: BookOpen, permission: 'edu:course' },
   { path: '/classes', label: '班级', icon: UsersRound, permission: 'edu:class' },
   { path: '/students', label: '学生', icon: User, permission: 'edu:student' },
+  { path: '/materials', label: '资料', icon: Files, permission: 'resource:material' },
+  { path: '/activities', label: '活动', icon: PartyPopper, permission: 'operation:activity' },
+  { path: '/finance', label: '财务', icon: CreditCard, permission: 'finance:order' },
+  { path: '/notifications', label: '通知', icon: Bell, permission: 'system:notification' },
 ];
 
 const visibleNavItems = computed(() =>

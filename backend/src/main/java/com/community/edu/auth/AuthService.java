@@ -42,6 +42,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 认证服务。处理登录、Token刷新、登出及当前用户信息构建。
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor

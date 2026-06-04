@@ -1,0 +1,23 @@
+# 构建输出
+target/
+logs/
+*.log
+
+# IDE
+.idea/
+*.iml
+
+# Git
+.git/
+.gitignore
+
+# 测试相关（构建阶段不需要）
+src/test/
+
+# 文档
+README.md
+*.md
+
+# 本地配置
+application-local.yml
+application-dev.yml

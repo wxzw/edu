@@ -1,6 +1,10 @@
 package com.community.edu.security;
 
 import com.community.edu.common.context.CampusContextHolder;
+
+/**
+ * JWT 认证过滤器。拦截请求并验证Token有效性。
+ */
 import com.community.edu.common.context.CurrentUser;
 import com.community.edu.common.exception.BizException;
 import com.community.edu.common.exception.ErrorCode;

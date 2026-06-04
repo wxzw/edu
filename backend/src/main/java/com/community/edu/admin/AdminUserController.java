@@ -21,6 +21,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 用户管理接口。提供用户的增删改查、密码重置、状态变更等功能。
+ */
 @Validated
 @RestController
 @RequiredArgsConstructor

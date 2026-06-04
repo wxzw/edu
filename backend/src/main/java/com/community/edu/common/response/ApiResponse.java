@@ -1,6 +1,10 @@
 package com.community.edu.common.response;
 
 import com.community.edu.common.trace.TraceIdHolder;
+
+/**
+ * API 响应包装器。统一包装接口返回的数据结构。
+ */
 import java.time.OffsetDateTime;
 import lombok.Getter;
 

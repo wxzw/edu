@@ -9,6 +9,7 @@ interface AuthState {
   userInfo?: UserInfo;
   identities: MiniappIdentity[];
   selectedIdentity?: MiniappIdentity;
+  currentStudentId?: number;
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -20,6 +21,7 @@ export const useAuthStore = defineStore('auth', {
   getters: {
     isLoggedIn: (state) => Boolean(state.accessToken),
     displayName: (state) => state.selectedIdentity?.displayName || state.userInfo?.realName || '',
+    activeStudentId: (state) => state.currentStudentId,
   },
   actions: {
     hydrate() {
@@ -35,16 +37,23 @@ export const useAuthStore = defineStore('auth', {
       this.userInfo = response.userInfo;
       this.identities = response.availableIdentities || [];
       this.selectedIdentity = response.selectedIdentity;
+      this.syncCurrentStudent();
       this.persist();
     },
     applyMe(response: MiniappMeResponse) {
       this.userInfo = response.userInfo;
       this.identities = response.availableIdentities || [];
       this.selectedIdentity = response.selectedIdentity;
+      this.syncCurrentStudent();
       this.persist();
     },
     setSelectedIdentity(identity: MiniappIdentity) {
       this.selectedIdentity = identity;
+      this.syncCurrentStudent();
+      this.persist();
+    },
+    setCurrentStudent(studentId: number) {
+      this.currentStudentId = studentId;
       this.persist();
     },
     hasIdentity(identityType: IdentityType) {
@@ -56,7 +65,22 @@ export const useAuthStore = defineStore('auth', {
       this.userInfo = undefined;
       this.identities = [];
       this.selectedIdentity = undefined;
+      this.currentStudentId = undefined;
       uni.removeStorageSync(STORAGE_KEY);
+    },
+    syncCurrentStudent() {
+      if (this.selectedIdentity?.identityType === 'STUDENT') {
+        this.currentStudentId = this.selectedIdentity.identityId;
+        return;
+      }
+      if (this.selectedIdentity?.identityType === 'GUARDIAN') {
+        const children = this.selectedIdentity.children || [];
+        if (!children.some((child) => child.studentId === this.currentStudentId)) {
+          this.currentStudentId = children[0]?.studentId;
+        }
+        return;
+      }
+      this.currentStudentId = undefined;
     },
     persist() {
       uni.setStorageSync(STORAGE_KEY, {
@@ -65,6 +89,7 @@ export const useAuthStore = defineStore('auth', {
         userInfo: this.userInfo,
         identities: this.identities,
         selectedIdentity: this.selectedIdentity,
+        currentStudentId: this.currentStudentId,
       });
     },
   },

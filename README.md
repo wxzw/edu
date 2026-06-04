@@ -8,6 +8,7 @@
 
 - **多校区管理** - 支持多校区运营，数据隔离
 - **教务管理** - 老师、课程、班级、学生全流程管理
+- **运营管理** - 资料库、活动、拼班、订单、通知
 - **权限控制** - RBAC 权限模型，精细化权限管理
 - **家校互动** - 微信小程序连接老师、学生、家长
 
@@ -17,19 +18,21 @@
 graph TB
     subgraph "用户端"
         A1[管理后台<br/>Vue 3 + Element Plus]
-        A2[微信小程序<br/>uni-app]
+        A2[微信小程序<br/>uni-app TabBar]
     end
     
     subgraph "服务端"
         B1[Spring Boot 3.3<br/>REST API]
-        B2[JWT 认证]
-        B3[RBAC 权限]
-        B4[多租户隔离]
+        B2[Auth 认证模块]
+        B3[Admin 管理模块]
+        B4[Student 学生端]
+        B5[Teacher 教师端]
+        B6[Miniapp 小程序认证]
     end
     
     subgraph "数据层"
-        C1[PostgreSQL<br/>业务数据]
-        C2[Redis<br/>Token/缓存]
+        C1[(PostgreSQL<br/>业务数据)]
+        C2[(Redis<br/>Token/缓存)]
         C3[Flyway<br/>数据库迁移]
     end
     
@@ -43,6 +46,8 @@ graph TB
     B1 --> B2
     B1 --> B3
     B1 --> B4
+    B1 --> B5
+    B1 --> B6
     B1 --> C1
     B1 --> C2
     B1 --> D1
@@ -70,23 +75,23 @@ graph TB
 
 | 技术 | 版本 | 说明 |
 |------|------|------|
-| Vue | 3.5 | 前端框架 |
-| Vue Router | 4.5 | 路由管理 |
-| Pinia | 2.2 | 状态管理 |
-| Element Plus | 2.9 | UI 组件库 |
-| Axios | 1.7 | HTTP 客户端 |
-| TypeScript | 5.7 | 类型支持 |
-| Vite | 6.0 | 构建工具 |
-| Lucide Icons | - | 图标库 |
+| Vue | 3.5.13 | 前端框架 |
+| Vue Router | 4.5.0 | 路由管理 |
+| Pinia | 2.2.6 | 状态管理 |
+| Element Plus | 2.9.1 | UI 组件库 |
+| Axios | 1.7.9 | HTTP 客户端 |
+| TypeScript | 5.7.2 | 类型支持 |
+| Vite | 6.0.3 | 构建工具 |
+| Lucide Icons | 0.468.0 | 图标库 |
 
 ### 小程序 (Miniapp)
 
 | 技术 | 版本 | 说明 |
 |------|------|------|
 | uni-app | 3.0 | 跨平台框架 |
-| Vue | 3.5 | 前端框架 |
-| Pinia | 2.2 | 状态管理 |
-| TypeScript | 5.7 | 类型支持 |
+| Vue | 3.4.21 | 前端框架 |
+| Pinia | 2.1.7 | 状态管理 |
+| TypeScript | 5.7.2 | 类型支持 |
 
 ---
 
@@ -99,7 +104,7 @@ edu/
 │   │   ├── main/
 │   │   │   ├── java/
 │   │   │   │   └── com/community/edu/
-│   │   │   │       ├── admin/          # 系统管理模块
+│   │   │   │       ├── admin/          # 管理后台模块
 │   │   │   │       │   ├── dto/        # 数据传输对象
 │   │   │   │       │   ├── *Controller.java    # 控制器
 │   │   │   │       │   └── *Service.java       # 服务层
@@ -118,7 +123,16 @@ edu/
 │   │   │   │       │   ├── dto/
 │   │   │   │       │   └── wechat/     # 微信相关
 │   │   │   │       ├── security/       # 安全组件
-│   │   │   │       └── service/        # 业务服务
+│   │   │   │       ├── service/        # 业务服务
+│   │   │   │       ├── student/        # 学生端模块
+│   │   │   │       │   ├── dto/
+│   │   │   │       │   ├── StudentController.java
+│   │   │   │       │   ├── StudentP1Controller.java
+│   │   │   │       │   └── *Service.java
+│   │   │   │       └── teacher/        # 教师端模块
+│   │   │   │           ├── dto/
+│   │   │   │           ├── TeacherController.java
+│   │   │   │           └── *Service.java
 │   │   │   └── resources/
 │   │   │       ├── application.yml     # 配置文件
 │   │   │       └── db/migration/       # Flyway 迁移脚本
@@ -149,6 +163,10 @@ edu/
 │   │   │   ├── CoursesView.vue     # 课程管理
 │   │   │   ├── ClassesView.vue     # 班级管理
 │   │   │   ├── StudentsView.vue    # 学生管理
+│   │   │   ├── MaterialsView.vue   # 资料管理
+│   │   │   ├── ActivitiesView.vue  # 活动管理
+│   │   │   ├── FinanceView.vue     # 财务管理
+│   │   │   ├── NotificationsView.vue # 通知管理
 │   │   │   ├── DashboardView.vue   # 工作台
 │   │   │   └── LoginView.vue       # 登录页
 │   │   ├── App.vue
@@ -161,20 +179,47 @@ edu/
 ├── miniapp/                    # 微信小程序
 │   ├── src/
 │   │   ├── api/                # API 接口
+│   │   │   ├── http.ts         # HTTP 配置
+│   │   │   ├── miniapp.ts      # 认证接口
+│   │   │   ├── student.ts      # 学生端接口
+│   │   │   └── teacher.ts      # 老师端接口
+│   │   ├── components/         # 公共组件
+│   │   │   ├── AppTabBar.vue
+│   │   │   ├── SubmitButton.vue
+│   │   │   ├── FormSection.vue
+│   │   │   └── FormField.vue
 │   │   ├── pages/              # 页面
 │   │   │   ├── login/          # 登录页
 │   │   │   ├── identity/       # 身份选择
 │   │   │   ├── teacher/        # 老师工作台
-│   │   │   ├── student/        # 学生学习台
+│   │   │   │   ├── home.vue
+│   │   │   │   ├── class/
+│   │   │   │   ├── student/
+│   │   │   │   ├── homework/
+│   │   │   │   ├── attendance/
+│   │   │   │   ├── checkin/
+│   │   │   │   └── material/
+│   │   │   ├── student/        # 学生端（TabBar导航）
+│   │   │   │   ├── home.vue        # 首页仪表盘
+│   │   │   │   ├── learning.vue    # 作业中心
+│   │   │   │   ├── course.vue      # 课程+课时
+│   │   │   │   ├── homework/       # 作业详情/提交
+│   │   │   │   ├── material/       # 资料详情
+│   │   │   │   ├── activity/       # 活动列表/详情
+│   │   │   │   ├── group/          # 拼班发起/详情/分享
+│   │   │   │   └── registrations.vue
 │   │   │   ├── guardian/       # 家长中心
 │   │   │   └── mine/           # 个人中心
 │   │   ├── stores/             # 状态管理
+│   │   │   └── auth.ts         # 认证+身份+当前学生
 │   │   ├── types/              # 类型定义
+│   │   │   └── api.ts          # 完整TS类型
 │   │   ├── utils/              # 工具函数
-│   │   ├── pages.json          # 页面配置
+│   │   │   ├── auth-flow.ts    # 路由守卫
+│   │   │   └── routes.ts       # 身份路由映射
+│   │   ├── pages.json          # 页面配置+TabBar定义
 │   │   ├── manifest.json       # 应用配置
-│   │   └ App.vue
-│   │   └ main.ts
+│   │   └── App.vue
 │   ├── package.json
 │   └── vite.config.ts
 │
@@ -186,7 +231,7 @@ edu/
 │
 ├── FEATURES.md                 # 功能文档
 ├── API.md                      # 接口文档
-└ README.md                     # 项目说明
+└── README.md                   # 项目说明
 ```
 
 ---
@@ -206,13 +251,27 @@ edu/
 - ✅ **班级管理** - 班级创建、学生分配、状态流转
 - ✅ **学生管理** - 学生档案、学习目标、状态管理
 
+### 运营管理
+
+- ✅ **资料库** - 文件上传、分类、资料发布
+- ✅ **活动管理** - 校区活动发布、报名管理
+- ✅ **拼班管理** - 拼班发起、分享、试听安排
+- ✅ **财务管理** - 订单查询、支付记录
+- ✅ **通知系统** - 站内通知发布、已读管理
+
 ### 小程序功能
 
-- ✅ **微信登录** - 微信授权自动登录
+- ✅ **微信登录** - 微信授权自动登录，手机号绑定
 - ✅ **身份切换** - 老师/学生/家长多身份支持
-- ✅ **老师工作台** - 课程查看、考勤管理
-- ✅ **学生学习台** - 课程查看、作业提交
-- ✅ **家长中心** - 孩子管理、学习监督
+- ✅ **老师工作台** - 班级、作业、考勤、课时记录
+- ✅ **学生仪表盘** - 课时看板、最近课程、待办提醒
+- ✅ **作业系统** - 作业列表、详情、文字/图片/语音提交、老师点评
+- ✅ **课程表/课时** - 课表查看、课时账户、课消流水
+- ✅ **拼班功能** - 发起拼班、分享邀请、进度跟踪、试听查看
+- ✅ **活动报名** - 活动浏览、报名、支付
+- ✅ **学习资料** - 资料分类、预览、下载
+- ✅ **多孩子切换** - 家长在多个孩子间切换，数据自动过滤
+- ✅ **TabBar 导航** - 首页/学习/课程/我的 底部导航
 
 ### 安全特性
 
@@ -220,16 +279,6 @@ edu/
 - ✅ 接口权限校验
 - ✅ 操作审计日志
 - ✅ 多校区数据隔离
-
-### 扩展功能（待开发）
-
-- 📋 课表管理
-- 📋 考勤管理
-- 📋 作业系统
-- 📋 课时账户
-- 📋 拼班功能
-- 📋 活动管理
-- 📋 订单管理
 
 ---
 
@@ -286,7 +335,7 @@ cd backend
 mvn spring-boot:run
 ```
 
-后端服务启动在 `http://localhost:18055`
+后端服务启动在 `http://localhost:8055`
 
 #### 5. 启动前端
 
@@ -316,15 +365,17 @@ npm run dev:mp-weixin
 
 | 配置项 | 说明 | 默认值 |
 |--------|------|--------|
-| server.port | 服务端口 | 18055 |
+| server.port | 服务端口 | 8055 |
 | spring.datasource.url | 数据库连接 | jdbc:postgresql://localhost:5432/edu_group |
 | spring.data.redis.host | Redis 地址 | localhost |
-| spring.data.redis.port | Redis 端口 | 16379 |
+| spring.data.redis.port | Redis 端口 | 6379 |
 | app.security.jwt-secret | JWT 密钥 | 需生产环境修改 |
 | app.security.access-token-ttl | Access Token 有效期 | 2h |
 | app.security.refresh-token-ttl | Refresh Token 有效期 | 7d |
+| app.tenant.header-name | 多校区租户隔离 Header | X-Campus-Id |
 | app.wechat.miniapp.app-id | 微信小程序 AppID | 需配置 |
 | app.wechat.miniapp.app-secret | 微信小程序 AppSecret | 需配置 |
+| app.wechat.miniapp.mock-enabled | 微信小程序模拟登录 | true（开发模式） |
 
 ### 前端配置
 
@@ -334,7 +385,7 @@ npm run dev:mp-weixin
 server: {
   proxy: {
     '/api': {
-      target: 'http://localhost:18055',
+      target: 'http://localhost:8055',
       changeOrigin: true,
     },
   },
@@ -356,14 +407,18 @@ server: {
 
 ## API 文档
 
-- **Swagger UI**: http://localhost:18055/swagger-ui.html
+- **Swagger UI**: http://localhost:8055/swagger-ui.html
 - **详细接口文档**: [API.md](./API.md)
 
 ---
 
 ## 功能文档
 
-详细功能说明请参阅 [FEATURES.md](./FEATURES.md)
+详细功能说明请参阅 [FEATURES.md](./FEATURES.md)。
+
+学生端小程序的细化规划请参阅 [STUDENT_MINIAPP_PLAN.md](./STUDENT_MINIAPP_PLAN.md)。
+
+教师端小程序的细化规划请参阅 [TEACHER_MINIAPP_PLAN.md](./TEACHER_MINIAPP_PLAN.md)。
 
 ---
 

@@ -1,6 +1,10 @@
 package com.community.edu.common.trace;
 
 import java.util.UUID;
+
+/**
+ * TraceId 持有者。提供线程安全的TraceId存取。
+ */
 import org.slf4j.MDC;
 
 public final class TraceIdHolder {

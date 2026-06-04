@@ -20,6 +20,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 校区管理接口。提供校区的增删改查、状态变更等管理功能。
+ */
 @Validated
 @RestController
 @RequiredArgsConstructor
