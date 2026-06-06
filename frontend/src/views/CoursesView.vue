@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { Plus, Search } from 'lucide-vue-next';
+import { Plus } from 'lucide-vue-next';
 import { onMounted, onUnmounted, reactive, ref } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { courseApi } from '@/api/admin';
 import type { CourseForm, CourseRecord } from '@/types/admin';
 import { statusText, statusType } from '@/utils/status';
+import SearchFilterBar from '@/components/SearchFilterBar.vue';
 
 const loading = ref(false);
 const dialogVisible = ref(false);
@@ -98,6 +99,14 @@ const toggleStatus = async (row: CourseRecord) => {
   await loadData();
 };
 
+const resetFilters = () => {
+  query.keyword = '';
+  query.courseSystem = '';
+  query.status = '';
+  query.pageNo = 1;
+  loadData();
+};
+
 onMounted(() => {
   loadData();
   window.addEventListener('campus-change', loadData);
@@ -119,17 +128,16 @@ onUnmounted(() => window.removeEventListener('campus-change', loadData));
     </section>
 
     <section class="table-surface">
-      <div class="table-toolbar">
-        <el-input v-model="query.keyword" clearable placeholder="课程名称 / 编码" @keyup.enter="loadData">
-          <template #prefix><Search :size="16" /></template>
-        </el-input>
-        <el-input v-model="query.courseSystem" clearable placeholder="课程体系" />
-        <el-select v-model="query.status" clearable placeholder="状态">
-          <el-option label="启用" value="ENABLED" />
-          <el-option label="停用" value="DISABLED" />
-        </el-select>
-        <el-button @click="loadData">查询</el-button>
-      </div>
+      <SearchFilterBar :loading="loading" show-reset @search="loadData" @reset="resetFilters">
+        <template #filters>
+          <el-input v-model="query.keyword" clearable placeholder="课程名称 / 编码" @keyup.enter="loadData" />
+          <el-input v-model="query.courseSystem" clearable placeholder="课程体系" />
+          <el-select v-model="query.status" clearable placeholder="状态">
+            <el-option label="启用" value="ENABLED" />
+            <el-option label="停用" value="DISABLED" />
+          </el-select>
+        </template>
+      </SearchFilterBar>
 
       <el-table v-loading="loading" :data="records" stripe>
         <el-table-column prop="courseCode" label="编码" min-width="140" />

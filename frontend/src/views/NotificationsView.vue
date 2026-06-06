@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { BellPlus, Search } from 'lucide-vue-next';
+import { BellPlus } from 'lucide-vue-next';
 import { onMounted, onUnmounted, reactive, ref } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { ElMessage } from 'element-plus';
 import { classApi, notificationApi, studentApi } from '@/api/admin';
 import type { ClassRecord, NotificationForm, NotificationRecord, StudentRecord } from '@/types/admin';
+import SearchFilterBar from '@/components/SearchFilterBar.vue';
 
 const loading = ref(false);
 const dialogVisible = ref(false);
@@ -14,7 +15,7 @@ const classes = ref<ClassRecord[]>([]);
 const students = ref<StudentRecord[]>([]);
 const total = ref(0);
 
-const query = reactive({ pageNo: 1, pageSize: 10, status: '', bizType: '', receiverStudentId: undefined as number | undefined });
+const query = reactive({ pageNo: 1, pageSize: 10, status: '', bizType: '', receiverStudentId: undefined as number | undefined, dateRange: [] as string[] });
 const form = reactive<NotificationForm>({
   targetType: 'CAMPUS',
   title: '',
@@ -30,7 +31,14 @@ const rules: FormRules = {
 const loadData = async () => {
   loading.value = true;
   try {
-    const page = await notificationApi.page(query);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const params: any = { ...query };
+    if (query.dateRange && query.dateRange.length === 2) {
+      params.startDate = query.dateRange[0];
+      params.endDate = query.dateRange[1];
+    }
+    delete params.dateRange;
+    const page = await notificationApi.page(params);
     records.value = page.records;
     total.value = page.total;
   } finally {
@@ -62,6 +70,15 @@ const submit = async () => {
 
 const formatTime = (value?: string) => value?.slice(0, 16).replace('T', ' ') || '-';
 
+const resetFilters = () => {
+  query.status = '';
+  query.bizType = '';
+  query.receiverStudentId = undefined;
+  query.dateRange = [];
+  query.pageNo = 1;
+  loadData();
+};
+
 onMounted(() => {
   loadData();
   loadOptions();
@@ -83,19 +100,27 @@ onUnmounted(() => window.removeEventListener('campus-change', loadData));
     </section>
 
     <section class="table-surface">
-      <div class="table-toolbar">
-        <el-input v-model="query.bizType" clearable placeholder="业务类型" @keyup.enter="loadData">
-          <template #prefix><Search :size="16" /></template>
-        </el-input>
-        <el-select v-model="query.status" clearable placeholder="状态">
-          <el-option label="未读" value="UNREAD" />
-          <el-option label="已读" value="READ" />
-        </el-select>
-        <el-select v-model="query.receiverStudentId" clearable filterable placeholder="学生">
-          <el-option v-for="student in students" :key="student.id" :label="student.name" :value="student.id" />
-        </el-select>
-        <el-button @click="loadData">查询</el-button>
-      </div>
+      <SearchFilterBar :loading="loading" show-reset @search="loadData" @reset="resetFilters">
+        <template #filters>
+          <el-input v-model="query.bizType" clearable placeholder="业务类型" @keyup.enter="loadData" />
+          <el-select v-model="query.status" clearable placeholder="状态">
+            <el-option label="未读" value="UNREAD" />
+            <el-option label="已读" value="READ" />
+          </el-select>
+          <el-select v-model="query.receiverStudentId" clearable filterable placeholder="学生">
+            <el-option v-for="student in students" :key="student.id" :label="student.name" :value="student.id" />
+          </el-select>
+          <el-date-picker
+            v-model="query.dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="发送开始"
+            end-placeholder="发送结束"
+            value-format="YYYY-MM-DD"
+            unlink-panels
+          />
+        </template>
+      </SearchFilterBar>
 
       <el-table v-loading="loading" :data="records" stripe>
         <el-table-column prop="title" label="标题" min-width="220" />

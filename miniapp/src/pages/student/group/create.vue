@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { reactive, ref, computed } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { createGroupRequest } from '@/api/student';
 import { useAuthStore } from '@/stores/auth';
 import { requireStudentAccess } from '@/utils/auth-flow';
-import FormField from '@/components/FormField.vue';
-import FormSection from '@/components/FormSection.vue';
-import SubmitButton from '@/components/SubmitButton.vue';
 
 const auth = useAuthStore();
 const submitting = ref(false);
 const errors = reactive<Record<string, string>>({});
+const selectedTimeSlots = ref<string[]>([]);
+
+const gradeOptions = ['幼儿园大班', '一年级', '二年级', '三年级', '四年级', '五年级', '六年级'];
+const systemOptions = ['校内同步', '自然拼读', '剑桥 KET', '剑桥 PET', '新概念', '原版阅读'];
+const levelOptions = ['零基础', '认识字母', '能读简单单词', '校内同步较弱', '有绘本阅读', '备考提升'];
+const timeSlotOptions = ['周六上午', '周六下午', '周日上午', '周日下午', '工作日晚', '寒暑假白天'];
 
 const form = reactive({
   childAge: '',
@@ -21,11 +24,55 @@ const form = reactive({
   contactPhone: '',
 });
 
-const isFormValid = computed(() => {
-  return form.childAge && form.grade && form.targetSystem && form.englishLevel && form.preferredTimes;
+const preferredTimeItems = computed(() => {
+  const customTimes = form.preferredTimes
+    .split(/[，,\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return Array.from(new Set([...selectedTimeSlots.value, ...customTimes]));
+});
+
+const completedCount = computed(() => {
+  return [
+    form.childAge,
+    form.grade,
+    form.targetSystem,
+    form.englishLevel,
+    preferredTimeItems.value.length,
+  ].filter(Boolean).length;
+});
+
+const isFormValid = computed(() => completedCount.value === 5);
+const phonePlaceholder = computed(() => auth.userInfo?.phone || '请输入手机号');
+const submitSubtitle = computed(() => {
+  if (isFormValid.value) {
+    return '资料已完整，可以提交';
+  }
+  return `还差 ${5 - completedCount.value} 项必填信息`;
 });
 
 requireStudentAccess();
+
+function setOption(field: 'grade' | 'targetSystem' | 'englishLevel', value: string) {
+  form[field] = value;
+  errors[field] = '';
+}
+
+function changeAge(offset: number) {
+  const current = Number(form.childAge || 0);
+  const next = Math.min(18, Math.max(3, Number((current + offset).toFixed(1))));
+  form.childAge = String(next);
+  errors.childAge = '';
+}
+
+function toggleTimeSlot(slot: string) {
+  if (selectedTimeSlots.value.includes(slot)) {
+    selectedTimeSlots.value = selectedTimeSlots.value.filter((item) => item !== slot);
+  } else {
+    selectedTimeSlots.value = [...selectedTimeSlots.value, slot];
+  }
+  errors.preferredTimes = '';
+}
 
 function validate(): boolean {
   let valid = true;
@@ -35,24 +82,24 @@ function validate(): boolean {
   errors.englishLevel = '';
   errors.preferredTimes = '';
 
-  if (!form.childAge) {
+  if (!form.childAge || Number.isNaN(Number(form.childAge))) {
     errors.childAge = '请填写孩子年龄';
     valid = false;
   }
   if (!form.grade) {
-    errors.grade = '请填写年级';
+    errors.grade = '请选择年级';
     valid = false;
   }
   if (!form.targetSystem) {
-    errors.targetSystem = '请填写目标体系';
+    errors.targetSystem = '请选择目标体系';
     valid = false;
   }
   if (!form.englishLevel) {
-    errors.englishLevel = '请填写英语基础';
+    errors.englishLevel = '请选择英语基础';
     valid = false;
   }
-  if (!form.preferredTimes) {
-    errors.preferredTimes = '请填写可上课时间';
+  if (!preferredTimeItems.value.length) {
+    errors.preferredTimes = '请选择或填写可上课时间';
     valid = false;
   }
 
@@ -71,7 +118,7 @@ async function submit() {
       grade: form.grade,
       targetSystem: form.targetSystem,
       englishLevel: form.englishLevel,
-      preferredTimes: form.preferredTimes.split(/[，,\n]/).map((item) => item.trim()).filter(Boolean),
+      preferredTimes: preferredTimeItems.value,
       remark: form.remark,
       contactPhone: form.contactPhone || auth.userInfo?.phone,
     });
@@ -85,98 +132,195 @@ async function submit() {
 </script>
 
 <template>
-  <view class="page page-fade-enter">
-    <!-- 顶部标题区 -->
+  <view class="page">
     <view class="hero">
-      <view class="hero-badge">
-        <view class="badge-dot" />
-        <text class="badge-text">GROUP STARTER</text>
+      <view class="hero-copy">
+        <text class="eyebrow">GROUP MATCH</text>
+        <text class="hero-title">我要拼班</text>
+        <text class="hero-subtitle">填写孩子的学习画像，校区会按年级、目标和时间段匹配同伴。</text>
       </view>
-      <text class="hero-title">我要拼班</text>
-      <text class="hero-subtitle">满 4 人后，校区会安排试听课</text>
-      <view class="hero-divider" />
+      <view class="progress-card">
+        <text class="progress-number">{{ completedCount }}/5</text>
+        <text class="progress-label">必填完成</text>
+      </view>
     </view>
 
-    <!-- 表单区 -->
-    <FormSection title="基本信息" subtitle="请填写孩子的基本学习情况，方便老师安排合适的班级">
-      <FormField label="孩子年龄" required :error="errors.childAge">
-        <input
-          v-model="form.childAge"
-          type="digit"
-          placeholder="例如 8.5"
-          :class="{ 'input-error': errors.childAge }"
-          @input="errors.childAge = ''"
-        />
-      </FormField>
+    <view class="notice">
+      <text class="notice-title">匹配规则</text>
+      <text class="notice-text">人数接近后，老师会联系确认试听时间和具体班级。</text>
+    </view>
 
-      <FormField label="年级" required :error="errors.grade">
-        <input
-          v-model="form.grade"
-          placeholder="例如 三年级"
-          :class="{ 'input-error': errors.grade }"
-          @input="errors.grade = ''"
-        />
-      </FormField>
+    <view class="section">
+      <view class="section-head">
+        <text class="section-index">01</text>
+        <view>
+          <text class="section-title">孩子基础</text>
+          <text class="section-subtitle">先确定孩子所在阶段</text>
+        </view>
+      </view>
 
-      <FormField label="目标体系" required :error="errors.targetSystem">
-        <input
-          v-model="form.targetSystem"
-          placeholder="例如 剑桥 KET 体系"
-          :class="{ 'input-error': errors.targetSystem }"
-          @input="errors.targetSystem = ''"
-        />
-      </FormField>
+      <view class="field age-field" :class="{ error: errors.childAge }">
+        <view class="field-head">
+          <text class="field-label">孩子年龄 <text class="required">*</text></text>
+          <text v-if="errors.childAge" class="error-msg">{{ errors.childAge }}</text>
+        </view>
+        <view class="age-control">
+          <button class="age-button" @tap="changeAge(-0.5)">-</button>
+          <input
+            v-model="form.childAge"
+            class="age-input"
+            type="digit"
+            placeholder="8.5"
+            @input="errors.childAge = ''"
+          />
+          <text class="age-unit">岁</text>
+          <button class="age-button" @tap="changeAge(0.5)">+</button>
+        </view>
+      </view>
 
-      <FormField label="英语基础" required :error="errors.englishLevel">
-        <input
-          v-model="form.englishLevel"
-          placeholder="例如 校内同步"
-          :class="{ 'input-error': errors.englishLevel }"
-          @input="errors.englishLevel = ''"
-        />
-      </FormField>
-    </FormSection>
+      <view class="field" :class="{ error: errors.grade }">
+        <view class="field-head">
+          <text class="field-label">年级 <text class="required">*</text></text>
+          <text v-if="errors.grade" class="error-msg">{{ errors.grade }}</text>
+        </view>
+        <view class="chip-grid">
+          <button
+            v-for="option in gradeOptions"
+            :key="option"
+            class="chip"
+            :class="{ active: form.grade === option }"
+            @tap="setOption('grade', option)"
+          >
+            {{ option }}
+          </button>
+        </view>
+      </view>
+    </view>
 
-    <FormSection title="上课时间" subtitle="填写孩子方便上课的时间段，用逗号分隔">
-      <FormField label="可上课时间" required :error="errors.preferredTimes">
+    <view class="section">
+      <view class="section-head">
+        <text class="section-index">02</text>
+        <view>
+          <text class="section-title">学习目标</text>
+          <text class="section-subtitle">让系统更容易找到同需求家庭</text>
+        </view>
+      </view>
+
+      <view class="field" :class="{ error: errors.targetSystem }">
+        <view class="field-head">
+          <text class="field-label">目标体系 <text class="required">*</text></text>
+          <text v-if="errors.targetSystem" class="error-msg">{{ errors.targetSystem }}</text>
+        </view>
+        <view class="chip-grid two">
+          <button
+            v-for="option in systemOptions"
+            :key="option"
+            class="chip"
+            :class="{ active: form.targetSystem === option }"
+            @tap="setOption('targetSystem', option)"
+          >
+            {{ option }}
+          </button>
+        </view>
+      </view>
+
+      <view class="field" :class="{ error: errors.englishLevel }">
+        <view class="field-head">
+          <text class="field-label">英语基础 <text class="required">*</text></text>
+          <text v-if="errors.englishLevel" class="error-msg">{{ errors.englishLevel }}</text>
+        </view>
+        <view class="chip-grid two">
+          <button
+            v-for="option in levelOptions"
+            :key="option"
+            class="chip"
+            :class="{ active: form.englishLevel === option }"
+            @tap="setOption('englishLevel', option)"
+          >
+            {{ option }}
+          </button>
+        </view>
+      </view>
+    </view>
+
+    <view class="section">
+      <view class="section-head">
+        <text class="section-index">03</text>
+        <view>
+          <text class="section-title">上课时间</text>
+          <text class="section-subtitle">可多选，补充时间用逗号或换行分隔</text>
+        </view>
+      </view>
+
+      <view class="field" :class="{ error: errors.preferredTimes }">
+        <view class="field-head">
+          <text class="field-label">常用时间 <text class="required">*</text></text>
+          <text v-if="errors.preferredTimes" class="error-msg">{{ errors.preferredTimes }}</text>
+        </view>
+        <view class="chip-grid two">
+          <button
+            v-for="slot in timeSlotOptions"
+            :key="slot"
+            class="chip"
+            :class="{ active: selectedTimeSlots.includes(slot) }"
+            @tap="toggleTimeSlot(slot)"
+          >
+            {{ slot }}
+          </button>
+        </view>
         <textarea
           v-model="form.preferredTimes"
-          placeholder="用逗号分隔，例如：&#10;周六上午 9:00-11:00&#10;周日下午 14:00-16:00"
-          :class="{ 'input-error': errors.preferredTimes }"
+          class="textarea compact"
+          placeholder="补充具体时间，例如：周六 9:00-11:00"
           @input="errors.preferredTimes = ''"
         />
-      </FormField>
-    </FormSection>
+      </view>
+    </view>
 
-    <FormSection title="联系方式" subtitle="方便校区老师与您取得联系">
-      <FormField label="联系电话">
+    <view class="section">
+      <view class="section-head">
+        <text class="section-index">04</text>
+        <view>
+          <text class="section-title">联系与备注</text>
+          <text class="section-subtitle">选填，方便老师快速沟通</text>
+        </view>
+      </view>
+
+      <view class="field">
+        <text class="field-label">联系电话</text>
         <input
           v-model="form.contactPhone"
+          class="text-input"
           type="number"
           maxlength="11"
-          :placeholder="auth.userInfo?.phone || '请输入手机号'"
+          :placeholder="phonePlaceholder"
         />
-      </FormField>
-    </FormSection>
+      </view>
 
-    <FormSection title="其他" subtitle="可选填，帮助老师更好地了解孩子">
-      <FormField label="备注">
+      <view class="field">
+        <text class="field-label">补充说明</text>
         <textarea
           v-model="form.remark"
-          placeholder="可填写学习目标、特殊需求或其他补充信息"
+          class="textarea"
+          placeholder="例如学习目标、希望人数、是否需要试听提醒"
         />
-      </FormField>
-    </FormSection>
+      </view>
+    </view>
 
-    <!-- 提交按钮 -->
-    <view class="submit-wrap">
-      <SubmitButton
-        :loading="submitting"
-        :disabled="!isFormValid"
-        text="发起拼班"
+    <view class="submit-space" />
+    <view class="submit-bar">
+      <view class="submit-meta">
+        <text class="submit-title">发起后进入拼班详情</text>
+        <text class="submit-subtitle">{{ submitSubtitle }}</text>
+      </view>
+      <button
+        class="submit-button"
+        :class="{ disabled: !isFormValid || submitting }"
+        :disabled="!isFormValid || submitting"
         @tap="submit"
-      />
-      <text class="submit-hint">提交后，系统会自动为您匹配同需求的家长</text>
+      >
+        {{ submitting ? '提交中' : '发起' }}
+      </button>
     </view>
   </view>
 </template>
@@ -184,118 +328,349 @@ async function submit() {
 <style scoped>
 .page {
   min-height: 100vh;
-  padding: 32rpx 32rpx 80rpx;
-  background: #f6f1e8;
+  padding: 28rpx 28rpx 0;
+  background: #f4efe6;
   color: #17211d;
 }
 
-/* ===== Hero 标题区 ===== */
+button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  line-height: 1;
+}
+
+button::after {
+  border: 0;
+}
+
 .hero {
-  padding: 24rpx 8rpx 32rpx;
+  padding: 28rpx 8rpx 18rpx;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24rpx;
 }
 
-.hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 10rpx;
-  padding: 8rpx 18rpx;
-  border-radius: 100rpx;
-  background: rgba(34, 98, 76, 0.08);
-  margin-bottom: 20rpx;
+.hero-copy {
+  flex: 1;
+  min-width: 0;
 }
 
-.badge-dot {
-  width: 10rpx;
-  height: 10rpx;
-  border-radius: 50%;
-  background: #22624c;
-}
-
-.badge-text {
-  font-size: 22rpx;
-  font-weight: 800;
-  color: #22624c;
+.eyebrow {
+  display: block;
+  color: #2d6f83;
+  font-size: 21rpx;
+  font-weight: 900;
   letter-spacing: 2rpx;
 }
 
 .hero-title {
   display: block;
+  margin-top: 8rpx;
+  color: #17211d;
   font-size: 52rpx;
   font-weight: 900;
-  color: #17211d;
-  letter-spacing: 1rpx;
-  line-height: 1.2;
+  line-height: 1.12;
 }
 
 .hero-subtitle {
   display: block;
+  max-width: 500rpx;
   margin-top: 14rpx;
-  font-size: 26rpx;
-  color: #8a8a8a;
-  font-weight: 500;
-  line-height: 1.5;
+  color: #747a74;
+  font-size: 25rpx;
+  line-height: 1.55;
 }
 
-.hero-divider {
-  margin-top: 32rpx;
-  height: 2rpx;
-  background: linear-gradient(90deg, rgba(34, 98, 76, 0.15) 0%, transparent 100%);
-  border-radius: 2rpx;
-}
-
-/* ===== 输入框样式 ===== */
-input,
-textarea {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 20rpx 24rpx;
-  border-radius: 14rpx;
-  background: #f8f5ee;
-  color: #17211d;
-  font-size: 28rpx;
-  font-weight: 500;
-  line-height: 1.5;
-  border: 2rpx solid transparent;
-  transition: all 0.2s ease;
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: #b8b4ad;
-  font-weight: 400;
-}
-
-input:focus,
-textarea:focus {
-  background: #fff;
-  border-color: rgba(34, 98, 76, 0.3);
-  box-shadow: 0 0 0 4rpx rgba(34, 98, 76, 0.06);
-}
-
-input.input-error,
-textarea.input-error {
-  border-color: #e85d4c;
-  background: rgba(232, 93, 76, 0.04);
-}
-
-textarea {
-  min-height: 160rpx;
-  line-height: 1.6;
-}
-
-/* ===== 提交区 ===== */
-.submit-wrap {
-  margin-top: 40rpx;
+.progress-card {
+  width: 136rpx;
+  height: 136rpx;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 30rpx;
+  background: #18231e;
+  color: #fff;
+  box-shadow: 0 18rpx 36rpx rgba(23, 33, 29, 0.14);
+}
+
+.progress-number {
+  color: #f0b84d;
+  font-size: 38rpx;
+  font-weight: 900;
+}
+
+.progress-label {
+  margin-top: 2rpx;
+  font-size: 19rpx;
+  font-weight: 800;
+}
+
+.notice {
+  margin: 14rpx 4rpx 28rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 22rpx;
+  background: #e7f0ed;
+  border-left: 8rpx solid #2d6f83;
+}
+
+.notice-title {
+  display: block;
+  color: #225c49;
+  font-size: 25rpx;
+  font-weight: 900;
+}
+
+.notice-text {
+  display: block;
+  margin-top: 6rpx;
+  color: #597065;
+  font-size: 23rpx;
+  line-height: 1.45;
+}
+
+.section {
+  margin-top: 26rpx;
+}
+
+.section-head {
+  padding: 0 6rpx 16rpx;
+  display: flex;
   align-items: center;
   gap: 16rpx;
 }
 
-.submit-hint {
+.section-index {
+  width: 54rpx;
+  height: 54rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18rpx;
+  background: #f0b84d;
+  color: #17211d;
   font-size: 22rpx;
-  color: #a0a0a0;
-  font-weight: 400;
+  font-weight: 900;
+}
+
+.section-title {
+  display: block;
+  color: #17211d;
+  font-size: 32rpx;
+  font-weight: 900;
+}
+
+.section-subtitle {
+  display: block;
+  margin-top: 4rpx;
+  color: #8b8d87;
+  font-size: 23rpx;
+  line-height: 1.45;
+}
+
+.field {
+  margin-top: 14rpx;
+  padding: 24rpx;
+  border-radius: 24rpx;
+  background: #fffcf5;
+  border: 2rpx solid transparent;
+  box-shadow: 0 10rpx 24rpx rgba(54, 43, 30, 0.04);
+}
+
+.field.error {
+  border-color: rgba(232, 93, 76, 0.7);
+}
+
+.field-head {
+  min-height: 38rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.field-label {
+  display: block;
+  color: #17211d;
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.required,
+.error-msg {
+  color: #e85d4c;
+}
+
+.error-msg {
+  flex-shrink: 0;
+  font-size: 21rpx;
+  font-weight: 800;
+}
+
+.age-field {
+  padding-bottom: 18rpx;
+}
+
+.age-control {
+  margin-top: 20rpx;
+  height: 82rpx;
+  display: flex;
+  align-items: center;
+  border-radius: 20rpx;
+  background: #f5f0e8;
+  overflow: hidden;
+}
+
+.age-button {
+  width: 92rpx;
+  height: 82rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  background: #e7f0ed;
+  color: #225c49;
+  font-size: 36rpx;
+  font-weight: 900;
+}
+
+.age-input {
+  flex: 1;
+  height: 82rpx;
+  padding: 0 18rpx;
   text-align: center;
+  color: #17211d;
+  font-size: 40rpx;
+  font-weight: 900;
+}
+
+.age-unit {
+  padding-right: 20rpx;
+  color: #777b75;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.chip-grid {
+  margin-top: 18rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.chip {
+  min-width: 150rpx;
+  height: 66rpx;
+  padding: 0 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999rpx;
+  background: #f5f0e8;
+  color: #575b56;
+  font-size: 24rpx;
+  font-weight: 800;
+  border: 2rpx solid transparent;
+}
+
+.chip-grid.two .chip {
+  width: calc((100% - 12rpx) / 2);
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.chip.active {
+  background: #225c49;
+  color: #fff;
+  border-color: #225c49;
+  box-shadow: 0 10rpx 24rpx rgba(34, 92, 73, 0.18);
+}
+
+.text-input,
+.textarea {
+  width: 100%;
+  margin-top: 18rpx;
+  box-sizing: border-box;
+  border-radius: 20rpx;
+  background: #f5f0e8;
+  color: #17211d;
+  font-size: 27rpx;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.text-input {
+  height: 82rpx;
+  padding: 0 22rpx;
+}
+
+.textarea {
+  min-height: 156rpx;
+  padding: 22rpx;
+}
+
+.textarea.compact {
+  min-height: 104rpx;
+}
+
+.submit-space {
+  height: 160rpx;
+}
+
+.submit-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  padding: 18rpx 28rpx calc(18rpx + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  background: rgba(255, 252, 245, 0.96);
+  border-top: 1rpx solid #e6ded0;
+  box-shadow: 0 -12rpx 30rpx rgba(23, 33, 29, 0.08);
+}
+
+.submit-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.submit-title {
+  display: block;
+  color: #17211d;
+  font-size: 25rpx;
+  font-weight: 900;
+}
+
+.submit-subtitle {
+  display: block;
+  margin-top: 4rpx;
+  color: #858982;
+  font-size: 21rpx;
+  line-height: 1.35;
+}
+
+.submit-button {
+  width: 166rpx;
+  height: 82rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 24rpx;
+  background: #17211d;
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 900;
+  box-shadow: 0 14rpx 26rpx rgba(23, 33, 29, 0.18);
+}
+
+.submit-button.disabled {
+  opacity: 0.42;
+  box-shadow: none;
 }
 </style>

@@ -2,17 +2,33 @@
 import { computed, ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { getLessonAccounts, getLessonRecords, getSchedules } from '@/api/student';
-import type { LessonAccount, LessonRecord, ScheduleItem } from '@/types/api';
+import type { CalendarScheduleItem, LessonAccount, LessonRecord, ScheduleItem } from '@/types/api';
 import { requireStudentAccess } from '@/utils/auth-flow';
+import {
+  endOfMonthKey,
+  formatFullDateTitle,
+  formatTimeRange,
+  startOfMonthKey,
+  todayKey,
+} from '@/utils/calendar';
 import AppTabBar from '@/components/AppTabBar.vue';
+import ScheduleCalendar from '@/components/ScheduleCalendar.vue';
+import WeekScheduleStrip from '@/components/WeekScheduleStrip.vue';
+import DayScheduleList from '@/components/DayScheduleList.vue';
 
 const activeTab = ref<'schedule' | 'hours'>('schedule');
 const schedules = ref<ScheduleItem[]>([]);
 const accounts = ref<LessonAccount[]>([]);
 const records = ref<LessonRecord[]>([]);
 const loading = ref(false);
+const scheduleLoading = ref(false);
+const selectedDate = ref(todayKey());
+const currentMonth = ref(startOfMonthKey(selectedDate.value));
+const focusedSchedule = ref<ScheduleItem | null>(null);
 
 const totalRemaining = computed(() => accounts.value.reduce((sum, item) => sum + Number(item.remainingHours || 0), 0));
+const calendarSchedules = computed<CalendarScheduleItem[]>(() => schedules.value.map((item) => ({ ...item })));
+const selectedSchedules = computed<CalendarScheduleItem[]>(() => calendarSchedules.value.filter((item) => item.lessonDate === selectedDate.value));
 
 onShow(() => {
   if (requireStudentAccess()) {
@@ -24,7 +40,7 @@ async function loadCourseData() {
   loading.value = true;
   try {
     const [scheduleData, accountData, recordData] = await Promise.all([
-      getSchedules(),
+      getSchedules(startOfMonthKey(currentMonth.value), endOfMonthKey(currentMonth.value)),
       getLessonAccounts(),
       getLessonRecords(),
     ]);
@@ -36,6 +52,38 @@ async function loadCourseData() {
   } finally {
     loading.value = false;
   }
+}
+
+async function loadSchedulesForMonth(month: string) {
+  scheduleLoading.value = true;
+  try {
+    schedules.value = await getSchedules(startOfMonthKey(month), endOfMonthKey(month));
+  } catch (error) {
+    uni.showToast({ title: error instanceof Error ? error.message : '课程加载失败', icon: 'none' });
+  } finally {
+    scheduleLoading.value = false;
+  }
+}
+
+function changeMonth(month: string) {
+  currentMonth.value = startOfMonthKey(month);
+  if (selectedDate.value.slice(0, 7) !== currentMonth.value.slice(0, 7)) {
+    selectedDate.value = currentMonth.value;
+    focusedSchedule.value = null;
+  }
+  loadSchedulesForMonth(currentMonth.value);
+}
+
+function selectDate(date: string) {
+  selectedDate.value = date;
+  focusedSchedule.value = null;
+  if (date.slice(0, 7) !== currentMonth.value.slice(0, 7)) {
+    changeMonth(startOfMonthKey(date));
+  }
+}
+
+function openSchedule(item: CalendarScheduleItem) {
+  focusedSchedule.value = schedules.value.find((schedule) => schedule.id === item.id) || null;
 }
 
 function attendanceLabel(status?: string) {
@@ -54,6 +102,15 @@ function changeTypeLabel(type?: string) {
     ADJUST: '调整',
     REFUND: '退款',
   }[type || ''] || type || '-';
+}
+
+function scheduleStatusLabel(status?: string) {
+  return {
+    SCHEDULED: '待上课',
+    FINISHED: '已完成',
+    CANCELLED: '已取消',
+    IN_PROGRESS: '进行中',
+  }[status || ''] || status || '待确认';
 }
 </script>
 
@@ -74,17 +131,41 @@ function changeTypeLabel(type?: string) {
       <button class="tab" :class="{ active: activeTab === 'hours' }" @tap="activeTab = 'hours'">课时记录</button>
     </view>
 
-    <view v-if="activeTab === 'schedule'" class="list">
-      <view v-for="item in schedules" :key="item.id" class="card">
-        <view class="card-head">
-          <text class="card-title">{{ item.topic }}</text>
-          <text class="pill">{{ item.status }}</text>
-        </view>
-        <text class="line">{{ item.lessonDate }} {{ item.startTime?.slice(0, 5) }}-{{ item.endTime?.slice(0, 5) }}</text>
-        <text class="line">{{ item.courseName }} · {{ item.teacherName }}</text>
-        <text class="line">{{ item.classroom || item.className }}</text>
+    <view v-if="activeTab === 'schedule'" class="schedule-board">
+      <ScheduleCalendar
+        :current-month="currentMonth"
+        :selected-date="selectedDate"
+        :schedules="calendarSchedules"
+        @select="selectDate"
+        @change-month="changeMonth"
+      />
+
+      <view class="week-wrap">
+        <WeekScheduleStrip
+          :selected-date="selectedDate"
+          :schedules="calendarSchedules"
+          @select="selectDate"
+        />
       </view>
-      <view v-if="!schedules.length" class="empty">{{ loading ? '加载中...' : '暂无课程安排' }}</view>
+
+      <DayScheduleList
+        :date="selectedDate"
+        :schedules="selectedSchedules"
+        :loading="loading || scheduleLoading"
+        role="student"
+        @item-tap="openSchedule"
+      />
+
+      <view v-if="focusedSchedule" class="detail-panel">
+        <view class="detail-head">
+          <text class="detail-title">{{ focusedSchedule.topic }}</text>
+          <text class="detail-pill">{{ scheduleStatusLabel(focusedSchedule.status) }}</text>
+        </view>
+        <text class="detail-line">{{ formatFullDateTitle(focusedSchedule.lessonDate) }} {{ formatTimeRange(focusedSchedule.startTime, focusedSchedule.endTime) }}</text>
+        <text class="detail-line">{{ focusedSchedule.courseName }} · {{ focusedSchedule.teacherName }}</text>
+        <text class="detail-line">{{ focusedSchedule.classroom || focusedSchedule.className }}</text>
+        <text v-if="focusedSchedule.content" class="detail-content">{{ focusedSchedule.content }}</text>
+      </view>
     </view>
 
     <view v-else class="list">
@@ -177,8 +258,63 @@ function changeTypeLabel(type?: string) {
   color: #17211d;
 }
 
+.schedule-board,
 .list {
   margin-top: 22rpx;
+}
+
+.week-wrap {
+  margin-top: 18rpx;
+}
+
+.detail-panel {
+  margin-top: 18rpx;
+  padding: 28rpx;
+  border-radius: 22rpx;
+  background: #fffcf5;
+}
+
+.detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.detail-title {
+  flex: 1;
+  color: #17211d;
+  font-size: 34rpx;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.detail-pill,
+.pill {
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  background: #E8F0EA;
+  color: #22624c;
+  font-size: 22rpx;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.detail-line,
+.detail-content,
+.line {
+  display: block;
+  margin-top: 10rpx;
+  color: #909090;
+  font-size: 23rpx;
+  line-height: 1.5;
+}
+
+.detail-content {
+  color: #565a54;
+}
+
+.list {
   display: flex;
   flex-direction: column;
   gap: 16rpx;
@@ -203,23 +339,6 @@ function changeTypeLabel(type?: string) {
   display: block;
   font-size: 29rpx;
   font-weight: 900;
-}
-
-.pill {
-  padding: 6rpx 14rpx;
-  border-radius: 999rpx;
-  background: #E8F0EA;
-  color: #22624c;
-  font-size: 22rpx;
-  font-weight: 800;
-}
-
-.line {
-  display: block;
-  margin-top: 10rpx;
-  color: #909090;
-  font-size: 23rpx;
-  line-height: 1.5;
 }
 
 .account-hours {

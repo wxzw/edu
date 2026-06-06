@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Files, Plus, Search, UploadCloud } from 'lucide-vue-next';
+import { Files, Plus, UploadCloud } from 'lucide-vue-next';
 import { onMounted, onUnmounted, reactive, ref } from 'vue';
 import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -13,6 +13,7 @@ import type {
   TeacherRecord,
 } from '@/types/admin';
 import { statusText, statusType } from '@/utils/status';
+import SearchFilterBar from '@/components/SearchFilterBar.vue';
 
 const loading = ref(false);
 const dialogVisible = ref(false);
@@ -28,7 +29,7 @@ const classes = ref<ClassRecord[]>([]);
 const teachers = ref<TeacherRecord[]>([]);
 const total = ref(0);
 
-const query = reactive({ pageNo: 1, pageSize: 10, keyword: '', categoryId: undefined as number | undefined, status: '' });
+const query = reactive({ pageNo: 1, pageSize: 10, keyword: '', categoryId: undefined as number | undefined, status: '', dateRange: [] as string[] });
 const form = reactive<MaterialForm>({
   title: '',
   description: '',
@@ -54,8 +55,15 @@ const categoryRules: FormRules = {
 const loadData = async () => {
   loading.value = true;
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const params: any = { ...query };
+    if (query.dateRange && query.dateRange.length === 2) {
+      params.startDate = query.dateRange[0];
+      params.endDate = query.dateRange[1];
+    }
+    delete params.dateRange;
     const [page, categoryList] = await Promise.all([
-      materialApi.page(query),
+      materialApi.page(params),
       materialCategoryApi.list(),
     ]);
     records.value = page.records;
@@ -170,6 +178,15 @@ const resourceText: Record<string, string> = { PDF: 'PDF', VIDEO: '视频', AUDI
 const studyText: Record<string, string> = { REQUIRED: '必学', OPTIONAL: '选学' };
 const visibilityText: Record<string, string> = { CAMPUS: '全校区', CLASS: '指定班级' };
 
+const resetFilters = () => {
+  query.keyword = '';
+  query.categoryId = undefined;
+  query.status = '';
+  query.dateRange = [];
+  query.pageNo = 1;
+  loadData();
+};
+
 onMounted(() => {
   loadData();
   loadOptions();
@@ -181,9 +198,19 @@ onUnmounted(() => window.removeEventListener('campus-change', loadData));
 <template>
   <div class="page-stack">
     <section class="page-heading">
-      <div>
-        <p class="eyebrow">Resource</p>
-        <h2>资料库</h2>
+      <div class="heading-main">
+        <span class="heading-icon">
+          <Files :size="22" />
+        </span>
+        <div>
+          <p class="eyebrow">Resource</p>
+          <h2>资料库</h2>
+          <div class="heading-summary">
+            <span class="summary-pill"><strong>{{ total }}</strong> 总量</span>
+            <span class="summary-pill"><strong>{{ records.length }}</strong> 当前页</span>
+            <span class="summary-pill"><strong>{{ categories.length }}</strong> 分类</span>
+          </div>
+        </div>
       </div>
       <div class="heading-actions">
         <el-segmented v-model="activePanel" :options="[{ label: '资料', value: 'materials' }, { label: '分类', value: 'categories' }]" />
@@ -197,83 +224,132 @@ onUnmounted(() => window.removeEventListener('campus-change', loadData));
     </section>
 
     <section v-if="activePanel === 'materials'" class="table-surface">
-      <div class="table-toolbar">
-        <el-input v-model="query.keyword" clearable placeholder="资料标题 / 描述" @keyup.enter="loadData">
-          <template #prefix><Search :size="16" /></template>
-        </el-input>
-        <el-select v-model="query.categoryId" clearable placeholder="分类">
-          <el-option v-for="category in categories" :key="category.id" :label="category.name" :value="category.id" />
-        </el-select>
-        <el-select v-model="query.status" clearable placeholder="状态">
-          <el-option label="草稿" value="DRAFT" />
-          <el-option label="已发布" value="PUBLISHED" />
-        </el-select>
-        <el-button @click="loadData">查询</el-button>
+      <div class="surface-header">
+        <div>
+          <h3>资料列表</h3>
+          <p>共 {{ total }} 条资料，当前显示 {{ records.length }} 条</p>
+        </div>
       </div>
 
-      <el-table v-loading="loading" :data="records" stripe>
-        <el-table-column prop="title" label="资料" min-width="220">
-          <template #default="{ row }">
-            <div class="title-cell">
-              <Files :size="18" />
-              <div>
-                <strong>{{ row.title }}</strong>
-                <span>{{ row.fileName || '未命名文件' }}</span>
+      <SearchFilterBar :loading="loading" show-reset @search="loadData" @reset="resetFilters">
+        <template #filters>
+          <el-input v-model="query.keyword" clearable placeholder="资料标题 / 描述" @keyup.enter="loadData" />
+          <el-select v-model="query.categoryId" clearable placeholder="分类">
+            <el-option v-for="category in categories" :key="category.id" :label="category.name" :value="category.id" />
+          </el-select>
+          <el-select v-model="query.status" clearable placeholder="状态">
+            <el-option label="草稿" value="DRAFT" />
+            <el-option label="已发布" value="PUBLISHED" />
+          </el-select>
+          <el-date-picker
+            v-model="query.dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="上传开始"
+            end-placeholder="上传结束"
+            value-format="YYYY-MM-DD"
+            unlink-panels
+          />
+        </template>
+      </SearchFilterBar>
+
+      <div class="table-frame">
+        <el-table v-loading="loading" :data="records" stripe>
+          <el-table-column prop="title" label="资料" min-width="240">
+            <template #default="{ row }">
+              <div class="table-main-cell">
+                <span class="cell-icon">
+                  <Files :size="17" />
+                </span>
+                <div>
+                  <span class="cell-title">{{ row.title }}</span>
+                  <span class="cell-subtitle">{{ row.fileName || '未命名文件' }}</span>
+                </div>
               </div>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="categoryName" label="分类" width="120" />
-        <el-table-column prop="resourceType" label="类型" width="100">
-          <template #default="{ row }">{{ labelOf(resourceText, row.resourceType) }}</template>
-        </el-table-column>
-        <el-table-column prop="studyType" label="学习属性" width="110">
-          <template #default="{ row }">
-            <el-tag :type="row.studyType === 'REQUIRED' ? 'warning' : 'info'" effect="plain">
-              {{ labelOf(studyText, row.studyType) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="visibility" label="范围" width="110">
-          <template #default="{ row }">{{ labelOf(visibilityText, row.visibility) }}</template>
-        </el-table-column>
-        <el-table-column prop="allowDownload" label="下载" width="90">
-          <template #default="{ row }">
-            <el-tag :type="row.allowDownload ? 'success' : 'info'" effect="plain">{{ row.allowDownload ? '允许' : '禁止' }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="statusType(row.status)" effect="plain">{{ statusText[row.status] || row.status }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="170" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-            <el-button link :type="row.status === 'PUBLISHED' ? 'danger' : 'success'" @click="toggleStatus(row)">
-              {{ row.status === 'PUBLISHED' ? '下架' : '发布' }}
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+            </template>
+          </el-table-column>
+          <el-table-column prop="categoryName" label="分类" width="130">
+            <template #default="{ row }">
+              <span class="text-pill">{{ row.categoryName || '未分类' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="resourceType" label="类型" width="100">
+            <template #default="{ row }">
+              <el-tag class="status-tag" type="info" effect="plain">{{ labelOf(resourceText, row.resourceType) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="studyType" label="学习属性" width="110">
+            <template #default="{ row }">
+              <el-tag class="status-tag" :type="row.studyType === 'REQUIRED' ? 'warning' : 'info'" effect="plain">
+                {{ labelOf(studyText, row.studyType) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="visibility" label="范围" width="110">
+            <template #default="{ row }">
+              <span class="text-pill">{{ labelOf(visibilityText, row.visibility) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="allowDownload" label="下载" width="90">
+            <template #default="{ row }">
+              <el-tag class="status-tag" :type="row.allowDownload ? 'success' : 'info'" effect="plain">{{ row.allowDownload ? '允许' : '禁止' }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag class="status-tag" :type="statusType(row.status)" effect="plain">{{ statusText[row.status] || row.status }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="170" fixed="right">
+            <template #default="{ row }">
+              <div class="table-actions">
+                <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
+                <el-button link :type="row.status === 'PUBLISHED' ? 'danger' : 'success'" @click="toggleStatus(row)">
+                  {{ row.status === 'PUBLISHED' ? '下架' : '发布' }}
+                </el-button>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
       <div class="pagination-row">
         <el-pagination v-model:current-page="query.pageNo" v-model:page-size="query.pageSize" :total="total" layout="total, sizes, prev, pager, next" @change="loadData" />
       </div>
     </section>
 
     <section v-else class="table-surface">
-      <el-table :data="categories" stripe>
-        <el-table-column prop="name" label="分类名称" min-width="180" />
-        <el-table-column prop="sortOrder" label="排序" width="120" />
-        <el-table-column prop="status" label="状态" width="120">
-          <template #default="{ row }">
-            <el-tag :type="statusType(row.status)" effect="plain">{{ statusText[row.status] || row.status }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="100">
-          <template #default="{ row }"><el-button link type="primary" @click="openCategoryEdit(row)">编辑</el-button></template>
-        </el-table-column>
-      </el-table>
+      <div class="surface-header">
+        <div>
+          <h3>分类管理</h3>
+          <p>共 {{ categories.length }} 个分类</p>
+        </div>
+      </div>
+      <div class="table-frame">
+        <el-table :data="categories" stripe>
+          <el-table-column prop="name" label="分类名称" min-width="180">
+            <template #default="{ row }">
+              <span class="cell-title">{{ row.name }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="sortOrder" label="排序" width="120">
+            <template #default="{ row }">
+              <span class="code-pill">{{ row.sortOrder }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="状态" width="120">
+            <template #default="{ row }">
+              <el-tag class="status-tag" :type="statusType(row.status)" effect="plain">{{ statusText[row.status] || row.status }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="100">
+            <template #default="{ row }">
+              <div class="table-actions">
+                <el-button link type="primary" @click="openCategoryEdit(row)">编辑</el-button>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
     </section>
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑资料' : '新增资料'" width="860px">
@@ -369,27 +445,21 @@ onUnmounted(() => window.removeEventListener('campus-change', loadData));
 .heading-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
-.title-cell {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.title-cell strong,
-.title-cell span {
-  display: block;
-}
-
-.title-cell span,
 .upload-hint {
-  color: var(--muted-text);
+  color: var(--muted-soft);
   font-size: 12px;
+  margin-left: 10px;
 }
 
-.upload-hint {
-  margin-left: 10px;
+@media (max-width: 820px) {
+  .heading-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 </style>

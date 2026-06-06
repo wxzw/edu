@@ -87,6 +87,59 @@ public interface TeacherMiniappMapper {
 
     @InterceptorIgnore(tenantLine = "true")
     @Select("""
+        SELECT sc.id,
+               sc.class_id,
+               cl.name AS class_name,
+               sc.course_id,
+               co.name AS course_name,
+               sc.lesson_no,
+               sc.lesson_date,
+               sc.start_time,
+               sc.end_time,
+               sc.topic,
+               sc.classroom,
+               sc.lesson_hours,
+               sc.status,
+               (
+                   SELECT COUNT(*)
+                   FROM edu_class_student cs
+                   WHERE cs.campus_id = sc.campus_id
+                     AND cs.class_id = sc.class_id
+                     AND cs.deleted = 0
+                     AND cs.status = 'ACTIVE'
+               ) AS student_count,
+               (
+                   SELECT COUNT(*)
+                   FROM edu_attendance att
+                   WHERE att.campus_id = sc.campus_id
+                     AND att.schedule_id = sc.id
+                     AND att.deleted = 0
+               ) AS attendance_count
+        FROM edu_class_schedule sc
+        JOIN edu_class cl
+          ON cl.campus_id = sc.campus_id
+         AND cl.id = sc.class_id
+         AND cl.deleted = 0
+        JOIN edu_course co
+          ON co.campus_id = sc.campus_id
+         AND co.id = sc.course_id
+         AND co.deleted = 0
+        WHERE sc.campus_id = #{campusId}
+          AND sc.teacher_id = #{teacherId}
+          AND sc.deleted = 0
+          AND sc.lesson_date >= #{startDate}
+          AND sc.lesson_date <= #{endDate}
+        ORDER BY sc.lesson_date, sc.start_time, sc.id
+        """)
+    List<TeacherMiniappRows.TodayScheduleRow> selectSchedules(
+        @Param("campusId") Long campusId,
+        @Param("teacherId") Long teacherId,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
+    );
+
+    @InterceptorIgnore(tenantLine = "true")
+    @Select("""
         SELECT COUNT(*)
         FROM edu_class_schedule sc
         JOIN edu_class_student cs
@@ -846,7 +899,9 @@ public interface TeacherMiniappMapper {
                s.name AS student_name,
                s.avatar_url AS student_avatar_url,
                COALESCE(att.status, 'UNSET') AS status,
-               att.remark
+               att.remark,
+               att.consumed_hours,
+               att.hour_record_id
         FROM edu_class_student cs
         JOIN edu_student s
           ON s.campus_id = cs.campus_id
@@ -872,13 +927,15 @@ public interface TeacherMiniappMapper {
     @InterceptorIgnore(tenantLine = "true")
     @Insert("""
         INSERT INTO edu_attendance (
-            campus_id, schedule_id, class_id, student_id, status, remark, created_by, updated_by
+            campus_id, schedule_id, class_id, student_id, status, check_time, checked_by, remark, created_by, updated_by
         ) VALUES (
-            #{campusId}, #{scheduleId}, #{classId}, #{studentId}, #{status}, #{remark}, #{teacherId}, #{teacherId}
+            #{campusId}, #{scheduleId}, #{classId}, #{studentId}, #{status}, NOW(), #{operatorId}, #{remark}, #{operatorId}, #{operatorId}
         )
-        ON CONFLICT (campus_id, schedule_id, student_id)
+        ON CONFLICT (campus_id, schedule_id, student_id) WHERE deleted = 0
         DO UPDATE SET
             status = EXCLUDED.status,
+            check_time = NOW(),
+            checked_by = EXCLUDED.checked_by,
             remark = EXCLUDED.remark,
             updated_at = NOW(),
             updated_by = EXCLUDED.updated_by
@@ -890,7 +947,7 @@ public interface TeacherMiniappMapper {
         @Param("studentId") Long studentId,
         @Param("status") String status,
         @Param("remark") String remark,
-        @Param("teacherId") Long teacherId
+        @Param("operatorId") Long operatorId
     );
 
     @InterceptorIgnore(tenantLine = "true")
@@ -898,17 +955,38 @@ public interface TeacherMiniappMapper {
         SELECT sc.id,
                sc.class_id,
                cl.name AS class_name,
+               sc.course_id,
+               c.name AS course_name,
                sc.lesson_date,
                sc.start_time,
                sc.end_time,
                sc.topic,
+               COALESCE(sc.classroom, cl.classroom) AS classroom,
                sc.lesson_hours,
-               sc.course_id
+               (
+                   SELECT COUNT(*)
+                   FROM edu_class_student cs
+                   WHERE cs.campus_id = sc.campus_id
+                     AND cs.class_id = sc.class_id
+                     AND cs.status = 'ACTIVE'
+                     AND cs.deleted = 0
+               ) AS student_count,
+               (
+                   SELECT COUNT(*)
+                   FROM edu_attendance att
+                   WHERE att.campus_id = sc.campus_id
+                     AND att.schedule_id = sc.id
+                     AND att.deleted = 0
+               ) AS attendance_count
         FROM edu_class_schedule sc
         JOIN edu_class cl
           ON cl.campus_id = sc.campus_id
          AND cl.id = sc.class_id
          AND cl.deleted = 0
+        JOIN edu_course c
+          ON c.campus_id = sc.campus_id
+         AND c.id = sc.course_id
+         AND c.deleted = 0
         WHERE sc.campus_id = #{campusId}
           AND sc.id = #{scheduleId}
           AND sc.teacher_id = #{teacherId}
@@ -971,8 +1049,12 @@ public interface TeacherMiniappMapper {
           ON c.campus_id = a.campus_id
          AND c.id = a.course_id
          AND c.deleted = 0
+        JOIN edu_class_schedule sc
+          ON sc.campus_id = a.campus_id
+         AND sc.id = a.schedule_id
+         AND sc.teacher_id = #{teacherId}
+         AND sc.deleted = 0
         WHERE a.campus_id = #{campusId}
-          AND a.teacher_id = #{teacherId}
           AND a.deleted = 0
         ORDER BY a.occurred_at DESC, a.id DESC
         LIMIT #{limit}
@@ -984,9 +1066,9 @@ public interface TeacherMiniappMapper {
     );
 
     @InterceptorIgnore(tenantLine = "true")
-    @Insert("""
+    @Select("""
         INSERT INTO edu_lesson_hour_record (
-            campus_id, account_id, student_id, course_id, class_id, schedule_id, teacher_id,
+            campus_id, account_id, student_id, course_id, class_id, schedule_id, operator_id,
             change_type, hours_delta, balance_after, occurred_at, remark, created_by, updated_by
         ) SELECT
             #{campusId},
@@ -995,38 +1077,57 @@ public interface TeacherMiniappMapper {
             a.course_id,
             #{classId},
             #{scheduleId},
-            #{teacherId},
+            #{operatorId},
             'CONSUME',
             -#{lessonHours},
             a.remaining_hours - #{lessonHours},
             NOW(),
             #{remark},
-            #{teacherId},
-            #{teacherId}
+            #{operatorId},
+            #{operatorId}
         FROM edu_lesson_hour_account a
         WHERE a.campus_id = #{campusId}
           AND a.student_id = #{studentId}
           AND a.course_id = #{courseId}
           AND a.deleted = 0
+        RETURNING id
         """)
-    void insertLessonHourConsume(
+    Long insertLessonHourConsume(
         @Param("campusId") Long campusId,
         @Param("studentId") Long studentId,
         @Param("courseId") Long courseId,
         @Param("classId") Long classId,
         @Param("scheduleId") Long scheduleId,
-        @Param("teacherId") Long teacherId,
+        @Param("operatorId") Long operatorId,
         @Param("lessonHours") BigDecimal lessonHours,
         @Param("remark") String remark
     );
 
     @InterceptorIgnore(tenantLine = "true")
     @Update("""
+        UPDATE edu_attendance
+        SET consumed_hours = #{lessonHours},
+            hour_record_id = #{hourRecordId},
+            updated_at = NOW(),
+            updated_by = #{operatorId}
+        WHERE campus_id = #{campusId}
+          AND id = #{attendanceId}
+          AND deleted = 0
+        """)
+    void updateAttendanceDeductResult(
+        @Param("campusId") Long campusId,
+        @Param("attendanceId") Long attendanceId,
+        @Param("lessonHours") BigDecimal lessonHours,
+        @Param("hourRecordId") Long hourRecordId,
+        @Param("operatorId") Long operatorId
+    );
+
+    @InterceptorIgnore(tenantLine = "true")
+    @Update("""
         UPDATE edu_lesson_hour_account
         SET consumed_hours = consumed_hours + #{lessonHours},
-            remaining_hours = remaining_hours - #{lessonHours},
             updated_at = NOW(),
-            updated_by = #{teacherId}
+            updated_by = #{operatorId}
         WHERE campus_id = #{campusId}
           AND student_id = #{studentId}
           AND course_id = #{courseId}
@@ -1037,6 +1138,6 @@ public interface TeacherMiniappMapper {
         @Param("studentId") Long studentId,
         @Param("courseId") Long courseId,
         @Param("lessonHours") BigDecimal lessonHours,
-        @Param("teacherId") Long teacherId
+        @Param("operatorId") Long operatorId
     );
 }

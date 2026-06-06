@@ -252,11 +252,16 @@ public final class TeacherResponses {
         private Long scheduleId;
         private Long classId;
         private String className;
+        private Long courseId;
+        private String courseName;
         private LocalDate lessonDate;
         private LocalTime startTime;
         private LocalTime endTime;
         private String topic;
+        private String classroom;
         private BigDecimal lessonHours;
+        private Integer studentCount;
+        private Integer attendanceCount;
         private List<AttendanceStudentItem> students = new ArrayList<>();
     }
 

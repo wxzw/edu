@@ -2,17 +2,24 @@
 import { ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { requireIdentity } from '@/utils/auth-flow';
+import TeacherEmptyState from '@/components/TeacherEmptyState.vue';
+import TeacherHeroCard from '@/components/TeacherHeroCard.vue';
 
-const materials = ref<any[]>([]);
+interface TeacherMaterialItem {
+  id: number;
+  title: string;
+  description?: string;
+}
+
+const materials = ref<TeacherMaterialItem[]>([]);
 const loading = ref(false);
 
 async function fetchMaterials() {
   loading.value = true;
   try {
-    // TODO: 接入 /api/teacher/materials 接口
     materials.value = [];
-  } catch (e) {
-    uni.showToast({ title: '加载失败', icon: 'none' });
+  } catch (error) {
+    uni.showToast({ title: error instanceof Error ? error.message : '加载失败', icon: 'none' });
   } finally {
     loading.value = false;
   }
@@ -30,18 +37,29 @@ function toUpload() {
 
 <template>
   <view class="page">
-    <view class="hero">
-      <view>
-        <text class="eyebrow">Materials</text>
-        <text class="title">教学资料</text>
-      </view>
-      <button class="round-button" @tap="toUpload">+ 上传</button>
-    </view>
+    <TeacherHeroCard eyebrow="Materials" title="教学资料" subtitle="沉淀讲义、音频和课堂素材">
+      <template #action>
+        <button class="upload-button" @tap="toUpload">上传</button>
+      </template>
+    </TeacherHeroCard>
 
-    <view class="panel">
-      <view class="empty-row">
-        <text class="empty-text">资料管理功能开发中</text>
+    <view class="list">
+      <view
+        v-for="item in materials"
+        :key="item.id"
+        class="material-card"
+      >
+        <text class="material-title">{{ item.title }}</text>
+        <text class="material-desc">{{ item.description || '暂无说明' }}</text>
       </view>
+
+      <TeacherEmptyState
+        v-if="!materials.length"
+        :title="loading ? '正在加载资料' : '资料库暂未开放'"
+        description="首版老师端先展示入口，资料维护可以继续通过后台完成。"
+        action-text="填写资料信息"
+        @action="toUpload"
+      />
     </view>
   </view>
 </template>
@@ -49,60 +67,61 @@ function toUpload() {
 <style scoped>
 .page {
   min-height: 100vh;
-  padding: 40rpx 32rpx 60rpx;
-  background: #f6f1e8;
+  padding: 34rpx 28rpx 70rpx;
+  box-sizing: border-box;
+  background: #f4efe6;
+  color: #17211d;
 }
 
-.hero {
-  padding: 34rpx;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  border-radius: 22rpx;
-  background: linear-gradient(135deg, #1B3A2D 0%, #2D6A4F 100%);
+button {
+  margin: 0;
+  padding: 0;
+}
+
+button::after {
+  border: 0;
+}
+
+.upload-button {
+  width: 116rpx;
+  height: 62rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 252, 245, 0.16);
   color: #fff;
+  font-size: 24rpx;
+  font-weight: 900;
+  line-height: 62rpx;
 }
 
-.eyebrow {
-  display: block;
-  color: #f0b84d;
-  font-size: 22rpx;
-  font-weight: 800;
-  letter-spacing: 2rpx;
+.list {
+  margin-top: 22rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
 }
 
-.title {
+.material-card {
+  padding: 26rpx;
+  border-radius: 30rpx;
+  background: #fffcf5;
+  box-shadow: 0 10rpx 28rpx rgba(54, 43, 30, 0.04);
+}
+
+.material-title,
+.material-desc {
   display: block;
-  margin-top: 14rpx;
-  font-size: 40rpx;
+}
+
+.material-title {
+  color: #17211d;
+  font-size: 31rpx;
   font-weight: 900;
 }
 
-.round-button {
-  width: 140rpx;
-  height: 64rpx;
-  border-radius: 999rpx;
-  background: rgba(255,255,255,0.2);
-  color: #fff;
-  font-size: 24rpx;
-  font-weight: 800;
-}
-
-.panel {
-  margin-top: 28rpx;
-  padding: 28rpx;
-  border-radius: 18rpx;
-  background: #fffcf5;
-}
-
-.empty-row {
-  padding: 40rpx 0;
-  display: flex;
-  justify-content: center;
-}
-
-.empty-text {
-  font-size: 26rpx;
-  color: #999;
+.material-desc {
+  margin-top: 8rpx;
+  color: #858982;
+  font-size: 23rpx;
+  line-height: 1.45;
 }
 </style>

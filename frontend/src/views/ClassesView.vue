@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { Plus, Search, Trash2, Users, UserPlus } from 'lucide-vue-next';
+import { Plus, Trash2, Users, UserPlus } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { classApi, courseApi, teacherApi, studentApi } from '@/api/admin';
 import type { ClassForm, ClassRecord, ClassStudentRecord, CourseRecord, TeacherRecord, StudentRecord } from '@/types/admin';
 import { statusText, statusType } from '@/utils/status';
+import SearchFilterBar from '@/components/SearchFilterBar.vue';
 
 const loading = ref(false);
 const dialogVisible = ref(false);
@@ -16,7 +17,7 @@ const total = ref(0);
 const courses = ref<CourseRecord[]>([]);
 const teachers = ref<TeacherRecord[]>([]);
 
-const query = reactive({ pageNo: 1, pageSize: 10, keyword: '', courseId: undefined as number | undefined, status: '' });
+const query = reactive({ pageNo: 1, pageSize: 10, keyword: '', courseId: undefined as number | undefined, status: '', dateRange: [] as string[] });
 const form = reactive<ClassForm>({
   courseId: undefined,
   classNo: '',
@@ -151,12 +152,28 @@ const loadOptions = async () => {
 const loadData = async () => {
   loading.value = true;
   try {
-    const page = await classApi.page(query);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const params: any = { ...query };
+    if (query.dateRange && query.dateRange.length === 2) {
+      params.startDate = query.dateRange[0];
+      params.endDate = query.dateRange[1];
+    }
+    delete params.dateRange;
+    const page = await classApi.page(params);
     records.value = page.records;
     total.value = page.total;
   } finally {
     loading.value = false;
   }
+};
+
+const resetFilters = () => {
+  query.keyword = '';
+  query.courseId = undefined;
+  query.status = '';
+  query.dateRange = [];
+  query.pageNo = 1;
+  loadData();
 };
 
 const resetForm = () => {
@@ -233,20 +250,28 @@ onUnmounted(() => window.removeEventListener('campus-change', reloadAll));
     </section>
 
     <section class="table-surface">
-      <div class="table-toolbar">
-        <el-input v-model="query.keyword" clearable placeholder="班级名称 / 编号" @keyup.enter="loadData">
-          <template #prefix><Search :size="16" /></template>
-        </el-input>
-        <el-select v-model="query.courseId" clearable placeholder="课程">
-          <el-option v-for="course in courses" :key="course.id" :label="course.name" :value="course.id" />
-        </el-select>
-        <el-select v-model="query.status" clearable placeholder="状态">
-          <el-option label="筹备中" value="PREPARING" />
-          <el-option label="开班中" value="OPEN" />
-          <el-option label="已结班" value="CLOSED" />
-        </el-select>
-        <el-button @click="loadData">查询</el-button>
-      </div>
+      <SearchFilterBar :loading="loading" show-reset @search="loadData" @reset="resetFilters">
+        <template #filters>
+          <el-input v-model="query.keyword" clearable placeholder="班级名称 / 编号" @keyup.enter="loadData" />
+          <el-select v-model="query.courseId" clearable placeholder="课程">
+            <el-option v-for="course in courses" :key="course.id" :label="course.name" :value="course.id" />
+          </el-select>
+          <el-select v-model="query.status" clearable placeholder="状态">
+            <el-option label="筹备中" value="PREPARING" />
+            <el-option label="开班中" value="OPEN" />
+            <el-option label="已结班" value="CLOSED" />
+          </el-select>
+          <el-date-picker
+            v-model="query.dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开班开始"
+            end-placeholder="开班结束"
+            value-format="YYYY-MM-DD"
+            unlink-panels
+          />
+        </template>
+      </SearchFilterBar>
 
       <el-table v-loading="loading" :data="records" stripe>
         <el-table-column prop="classNo" label="编号" min-width="140" />

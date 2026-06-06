@@ -1,21 +1,41 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { onShow } from '@dcloudio/uni-app';
+import { computed, ref } from 'vue';
+import { onPullDownRefresh, onShow } from '@dcloudio/uni-app';
 import { requireIdentity } from '@/utils/auth-flow';
 import { getTeacherHomeworks } from '@/api/teacher';
 import type { TeacherHomeworkListItem } from '@/types/api';
 import AppTabBar from '@/components/AppTabBar.vue';
+import TeacherEmptyState from '@/components/TeacherEmptyState.vue';
+import TeacherHeroCard from '@/components/TeacherHeroCard.vue';
+
+type HomeworkFilter = 'ALL' | 'PENDING' | 'PUBLISHED' | 'DRAFT';
 
 const homeworks = ref<TeacherHomeworkListItem[]>([]);
 const loading = ref(false);
+const activeFilter = ref<HomeworkFilter>('ALL');
+
+const filterTabs: Array<{ label: string; value: HomeworkFilter }> = [
+  { label: '全部', value: 'ALL' },
+  { label: '待点评', value: 'PENDING' },
+  { label: '已发布', value: 'PUBLISHED' },
+  { label: '草稿', value: 'DRAFT' },
+];
+
+const pendingCount = computed(() => homeworks.value.reduce((sum, item) => sum + (item.pendingSubmissions || 0), 0));
+const publishedCount = computed(() => homeworks.value.filter((item) => item.status === 'PUBLISHED').length);
+const draftCount = computed(() => homeworks.value.filter((item) => item.status === 'DRAFT').length);
+const filteredHomeworks = computed(() => {
+  if (activeFilter.value === 'ALL') return homeworks.value;
+  if (activeFilter.value === 'PENDING') return homeworks.value.filter((item) => (item.pendingSubmissions || 0) > 0);
+  return homeworks.value.filter((item) => item.status === activeFilter.value);
+});
 
 async function fetchHomeworks() {
   loading.value = true;
   try {
-    const res = await getTeacherHomeworks();
-    homeworks.value = res;
-  } catch (e) {
-    uni.showToast({ title: '加载失败', icon: 'none' });
+    homeworks.value = await getTeacherHomeworks();
+  } catch (error) {
+    uni.showToast({ title: error instanceof Error ? error.message : '加载失败', icon: 'none' });
   } finally {
     loading.value = false;
   }
@@ -24,6 +44,10 @@ async function fetchHomeworks() {
 onShow(() => {
   if (!requireIdentity('TEACHER')) return;
   fetchHomeworks();
+});
+
+onPullDownRefresh(() => {
+  fetchHomeworks().finally(() => uni.stopPullDownRefresh());
 });
 
 function toCreate() {
@@ -35,45 +59,88 @@ function toDetail(id: number) {
 }
 
 function formatDate(date?: string) {
-  if (!date) return '';
-  return date.substring(0, 10);
+  return date ? date.substring(0, 10) : '未设置';
+}
+
+function statusLabel(status: string) {
+  if (status === 'PUBLISHED') return '已发布';
+  if (status === 'DRAFT') return '草稿';
+  return status;
 }
 </script>
 
 <template>
   <view class="page">
-    <view class="hero">
-      <view>
-        <text class="eyebrow">Homework</text>
-        <text class="title">作业管理</text>
+    <TeacherHeroCard eyebrow="Homework" title="作业管理" subtitle="发布、跟进、点评学生作业">
+      <template #action>
+        <button class="publish-button" @tap="toCreate">发布</button>
+      </template>
+      <view class="hero-metrics">
+        <view class="metric">
+          <text class="metric-num">{{ homeworks.length }}</text>
+          <text class="metric-label">全部</text>
+        </view>
+        <view class="metric">
+          <text class="metric-num">{{ pendingCount }}</text>
+          <text class="metric-label">待点评</text>
+        </view>
+        <view class="metric">
+          <text class="metric-num">{{ publishedCount }}</text>
+          <text class="metric-label">已发布</text>
+        </view>
       </view>
-      <button class="round-button" @tap="toCreate">+ 发布</button>
+    </TeacherHeroCard>
+
+    <view class="filter-tabs">
+      <view
+        v-for="tab in filterTabs"
+        :key="tab.value"
+        class="filter-tab"
+        :class="{ active: activeFilter === tab.value }"
+        @tap="activeFilter = tab.value"
+      >
+        {{ tab.label }}
+      </view>
     </view>
 
-    <view class="panel">
+    <view class="list">
       <view
-        class="hw-row"
-        v-for="item in homeworks"
+        v-for="item in filteredHomeworks"
         :key="item.id"
+        class="homework-card"
         @tap="toDetail(item.id)"
       >
-        <view class="hw-info">
-          <text class="hw-title">{{ item.title }}</text>
-          <text class="hw-class" v-if="item.className">{{ item.className }}</text>
-          <text class="hw-meta">
-            截止 {{ formatDate(item.deadline) }}
-            <text v-if="item.checkinEnabled"> · 打卡</text>
+        <view class="card-top">
+          <view class="card-copy">
+            <text class="homework-title">{{ item.title }}</text>
+            <text class="homework-class">{{ item.className || '未关联班级' }}</text>
+          </view>
+          <text class="status-pill" :class="{ draft: item.status === 'DRAFT' }">
+            {{ statusLabel(item.status) }}
           </text>
         </view>
-        <view class="hw-right">
-          <text class="hw-status" :class="item.status">{{ item.status === 'PUBLISHED' ? '已发布' : '草稿' }}</text>
-          <text class="hw-num" v-if="item.pendingSubmissions">待点评 {{ item.pendingSubmissions }}</text>
+        <text class="homework-content">{{ item.content || '暂无作业说明' }}</text>
+        <view class="card-footer">
+          <text>截止 {{ formatDate(item.deadline) }}</text>
+          <text v-if="item.checkinEnabled">打卡</text>
+          <text v-if="item.attachmentCount">{{ item.attachmentCount }} 附件</text>
+          <text v-if="item.pendingSubmissions" class="pending">待点评 {{ item.pendingSubmissions }}</text>
         </view>
       </view>
-      <view class="empty-row" v-if="!homeworks.length">
-        <text class="empty-text">暂无作业</text>
-      </view>
+
+      <TeacherEmptyState
+        v-if="!filteredHomeworks.length"
+        :title="loading ? '正在加载作业' : '暂无作业'"
+        description="可以发布一份班级作业，学生提交后会出现在这里。"
+        action-text="发布作业"
+        @action="toCreate"
+      />
     </view>
+
+    <view class="draft-count" v-if="draftCount">
+      <text>{{ draftCount }} 份草稿尚未发布</text>
+    </view>
+
     <AppTabBar />
   </view>
 </template>
@@ -81,119 +148,184 @@ function formatDate(date?: string) {
 <style scoped>
 .page {
   min-height: 100vh;
-  padding: 40rpx 32rpx 160rpx;
-  background: #f6f1e8;
-}
-
-.hero {
-  padding: 34rpx;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  border-radius: 22rpx;
-  background: linear-gradient(135deg, #1B3A2D 0%, #2D6A4F 100%);
-  color: #fff;
-}
-
-.eyebrow {
-  display: block;
-  color: #f0b84d;
-  font-size: 22rpx;
-  font-weight: 800;
-  letter-spacing: 2rpx;
-}
-
-.title {
-  display: block;
-  margin-top: 14rpx;
-  font-size: 40rpx;
-  font-weight: 900;
-}
-
-.round-button {
-  width: 140rpx;
-  height: 64rpx;
-  border-radius: 999rpx;
-  background: rgba(255,255,255,0.2);
-  color: #fff;
-  font-size: 24rpx;
-  font-weight: 800;
-}
-
-.panel {
-  margin-top: 28rpx;
-  padding: 28rpx;
-  border-radius: 18rpx;
-  background: #fffcf5;
-}
-
-.hw-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 24rpx 0;
-  border-top: 1px solid #F0EAE0;
-}
-
-.hw-info {
-  display: flex;
-  flex-direction: column;
-  gap: 6rpx;
-}
-
-.hw-title {
-  font-size: 30rpx;
-  font-weight: 700;
+  padding: 34rpx 28rpx 160rpx;
+  box-sizing: border-box;
+  background: #f4efe6;
   color: #17211d;
 }
 
-.hw-class {
+button {
+  margin: 0;
+  padding: 0;
+}
+
+button::after {
+  border: 0;
+}
+
+.publish-button {
+  width: 116rpx;
+  height: 62rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 252, 245, 0.16);
+  color: #fff;
   font-size: 24rpx;
-  color: #666;
+  font-weight: 900;
+  line-height: 62rpx;
 }
 
-.hw-meta {
-  font-size: 22rpx;
-  color: #999;
+.hero-metrics {
+  margin-top: 28rpx;
+  display: flex;
+  gap: 12rpx;
 }
 
-.hw-right {
+.metric {
+  flex: 1;
+  padding: 16rpx;
+  border-radius: 20rpx;
+  background: rgba(255, 252, 245, 0.12);
+}
+
+.metric-num,
+.metric-label {
+  display: block;
+}
+
+.metric-num {
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: 900;
+}
+
+.metric-label {
+  margin-top: 4rpx;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 20rpx;
+  font-weight: 800;
+}
+
+.filter-tabs {
+  margin-top: 22rpx;
+  padding: 6rpx;
+  display: flex;
+  gap: 6rpx;
+  border-radius: 20rpx;
+  background: #e8e2d8;
+}
+
+.filter-tab {
+  flex: 1;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16rpx;
+  color: #747970;
+  font-size: 23rpx;
+  font-weight: 900;
+}
+
+.filter-tab.active {
+  background: #fffcf5;
+  color: #17211d;
+  box-shadow: 0 8rpx 18rpx rgba(54, 43, 30, 0.06);
+}
+
+.list {
+  margin-top: 20rpx;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 8rpx;
+  gap: 18rpx;
 }
 
-.hw-status {
-  font-size: 22rpx;
-  padding: 4rpx 12rpx;
-  border-radius: 8rpx;
+.homework-card {
+  padding: 26rpx;
+  border-radius: 30rpx;
+  background: #fffcf5;
+  box-shadow: 0 10rpx 28rpx rgba(54, 43, 30, 0.04);
 }
 
-.hw-status.PUBLISHED {
-  background: #e8f5e9;
-  color: #22624c;
+.homework-card:active {
+  opacity: 0.76;
 }
 
-.hw-status.DRAFT {
-  background: #f5f5f5;
-  color: #999;
-}
-
-.hw-num {
-  font-size: 22rpx;
-  color: #e6a23c;
-  font-weight: 700;
-}
-
-.empty-row {
-  padding: 40rpx 0;
+.card-top {
   display: flex;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
 }
 
-.empty-text {
-  font-size: 26rpx;
-  color: #999;
+.card-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.homework-title {
+  display: block;
+  color: #17211d;
+  font-size: 31rpx;
+  font-weight: 900;
+  line-height: 1.26;
+}
+
+.homework-class {
+  display: block;
+  margin-top: 8rpx;
+  color: #6e756f;
+  font-size: 23rpx;
+  font-weight: 800;
+}
+
+.status-pill {
+  flex-shrink: 0;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: #e7f0ed;
+  color: #1f5a44;
+  font-size: 21rpx;
+  font-weight: 900;
+}
+
+.status-pill.draft {
+  background: #eee8de;
+  color: #777268;
+}
+
+.homework-content {
+  display: block;
+  margin-top: 18rpx;
+  color: #39403a;
+  font-size: 25rpx;
+  line-height: 1.5;
+}
+
+.card-footer {
+  margin-top: 20rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.card-footer text {
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: #f4efe6;
+  color: #7d827c;
+  font-size: 21rpx;
+  font-weight: 800;
+}
+
+.card-footer .pending {
+  background: #fff1d4;
+  color: #9a6710;
+}
+
+.draft-count {
+  margin-top: 18rpx;
+  color: #8a8d86;
+  font-size: 22rpx;
+  text-align: center;
 }
 </style>

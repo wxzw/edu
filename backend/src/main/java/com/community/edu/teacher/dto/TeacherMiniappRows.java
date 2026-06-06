@@ -174,6 +174,8 @@ public final class TeacherMiniappRows {
         private String studentAvatarUrl;
         private String status;
         private String remark;
+        private BigDecimal consumedHours;
+        private Long hourRecordId;
     }
 
     @Getter
@@ -197,12 +199,16 @@ public final class TeacherMiniappRows {
         private Long id;
         private Long classId;
         private String className;
+        private Long courseId;
+        private String courseName;
         private LocalDate lessonDate;
         private LocalTime startTime;
         private LocalTime endTime;
         private String topic;
+        private String classroom;
         private BigDecimal lessonHours;
-        private Long courseId;
+        private Integer studentCount;
+        private Integer attendanceCount;
     }
 
     @Getter

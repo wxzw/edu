@@ -90,17 +90,23 @@ const handleLogout = async () => {
       </div>
 
       <nav class="nav-list">
-        <button
+        <el-tooltip
           v-for="item in visibleNavItems"
           :key="item.path"
-          class="nav-item"
-          :class="{ active: activePath === item.path }"
-          :title="item.label"
-          @click="router.push(item.path)"
+          :content="item.label"
+          :disabled="!collapsed"
+          placement="right"
+          :show-after="400"
         >
-          <component :is="item.icon" :size="19" />
-          <span v-if="!collapsed">{{ item.label }}</span>
-        </button>
+          <button
+            class="nav-item"
+            :class="{ active: activePath === item.path }"
+            @click="router.push(item.path)"
+          >
+            <component :is="item.icon" :size="19" />
+            <span v-if="!collapsed">{{ item.label }}</span>
+          </button>
+        </el-tooltip>
       </nav>
 
       <button class="collapse-button" :title="collapsed ? '展开' : '收起'" @click="collapsed = !collapsed">

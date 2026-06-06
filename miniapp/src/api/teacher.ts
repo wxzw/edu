@@ -13,6 +13,7 @@ import type {
   BatchAttendanceRequest,
   DeductLessonHoursRequest,
   LessonHourRecordItem,
+  TodaySchedule,
 } from '@/types/api';
 
 export function getTeacherDashboard() {
@@ -83,6 +84,16 @@ export function commentTeacherHomework(id: number, submissionId: number, data: C
 export function getTodaySchedulesForAttendance() {
   return request<AttendanceListItem[]>({
     url: '/api/teacher/schedules/today',
+    method: 'GET',
+  });
+}
+
+export function getTeacherSchedules(startDate?: string, endDate?: string) {
+  const query = [startDate ? `startDate=${startDate}` : '', endDate ? `endDate=${endDate}` : '']
+    .filter(Boolean)
+    .join('&');
+  return request<TodaySchedule[]>({
+    url: `/api/teacher/schedules${query ? `?${query}` : ''}`,
     method: 'GET',
   });
 }

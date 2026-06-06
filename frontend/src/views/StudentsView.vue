@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { GraduationCap, Plus, Search } from 'lucide-vue-next';
+import { GraduationCap, Plus } from 'lucide-vue-next';
 import { onMounted, onUnmounted, reactive, ref } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { studentApi } from '@/api/admin';
 import type { StudentForm, StudentRecord } from '@/types/admin';
-import { statusText, statusType } from '@/utils/status';
+import SearchFilterBar from '@/components/SearchFilterBar.vue';
 
 const loading = ref(false);
 const dialogVisible = ref(false);
@@ -14,7 +14,7 @@ const formRef = ref<FormInstance>();
 const records = ref<StudentRecord[]>([]);
 const total = ref(0);
 
-const query = reactive({ pageNo: 1, pageSize: 10, keyword: '', status: '', grade: '' });
+const query = reactive({ pageNo: 1, pageSize: 10, keyword: '', status: '', grade: '', enrolledDateRange: [] as string[] });
 const form = reactive<StudentForm>({
   studentNo: '',
   name: '',
@@ -68,7 +68,14 @@ const gradeOptions = [
 const loadData = async () => {
   loading.value = true;
   try {
-    const page = await studentApi.page(query);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const params: any = { ...query };
+    if (query.enrolledDateRange && query.enrolledDateRange.length === 2) {
+      params.startDate = query.enrolledDateRange[0];
+      params.endDate = query.enrolledDateRange[1];
+    }
+    delete params.enrolledDateRange;
+    const page = await studentApi.page(params);
     records.value = page.records;
     total.value = page.total;
   } finally {
@@ -139,6 +146,15 @@ const getAge = (birthday?: string) => {
   return age + '岁';
 };
 
+const resetFilters = () => {
+  query.keyword = '';
+  query.status = '';
+  query.grade = '';
+  query.enrolledDateRange = [];
+  query.pageNo = 1;
+  loadData();
+};
+
 onMounted(() => {
   loadData();
   window.addEventListener('campus-change', loadData);
@@ -160,21 +176,29 @@ onUnmounted(() => window.removeEventListener('campus-change', loadData));
     </section>
 
     <section class="table-surface">
-      <div class="table-toolbar">
-        <el-input v-model="query.keyword" clearable placeholder="姓名 / 学号 / 昵称 / 学校" @keyup.enter="loadData">
-          <template #prefix><Search :size="16" /></template>
-        </el-input>
-        <el-select v-model="query.status" clearable placeholder="状态">
-          <el-option label="在读" value="ACTIVE" />
-          <el-option label="休学" value="SUSPENDED" />
-          <el-option label="毕业" value="GRADUATED" />
-          <el-option label="退学" value="WITHDRAWN" />
-        </el-select>
-        <el-select v-model="query.grade" clearable placeholder="年级" filterable>
-          <el-option v-for="g in gradeOptions" :key="g" :label="g" :value="g" />
-        </el-select>
-        <el-button @click="loadData">查询</el-button>
-      </div>
+      <SearchFilterBar :loading="loading" show-reset @search="loadData" @reset="resetFilters">
+        <template #filters>
+          <el-input v-model="query.keyword" clearable placeholder="姓名 / 学号 / 昵称 / 学校" @keyup.enter="loadData" />
+          <el-select v-model="query.status" clearable placeholder="状态">
+            <el-option label="在读" value="ACTIVE" />
+            <el-option label="休学" value="SUSPENDED" />
+            <el-option label="毕业" value="GRADUATED" />
+            <el-option label="退学" value="WITHDRAWN" />
+          </el-select>
+          <el-select v-model="query.grade" clearable placeholder="年级" filterable>
+            <el-option v-for="g in gradeOptions" :key="g" :label="g" :value="g" />
+          </el-select>
+          <el-date-picker
+            v-model="query.enrolledDateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="入学开始"
+            end-placeholder="入学结束"
+            value-format="YYYY-MM-DD"
+            unlink-panels
+          />
+        </template>
+      </SearchFilterBar>
 
       <el-table v-loading="loading" :data="records" stripe>
         <el-table-column prop="studentNo" label="学号" min-width="130" />

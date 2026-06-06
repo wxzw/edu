@@ -4,8 +4,10 @@ import com.community.edu.common.response.ApiResponse;
 import com.community.edu.teacher.dto.TeacherRequests;
 import com.community.edu.teacher.dto.TeacherResponses;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -78,6 +80,14 @@ public class TeacherController {
     @GetMapping("/schedules/today")
     public ApiResponse<List<TeacherResponses.AttendanceListItem>> todaySchedulesForAttendance() {
         return ApiResponse.success(teacherApiService.todaySchedulesForAttendance());
+    }
+
+    @GetMapping("/schedules")
+    public ApiResponse<List<TeacherResponses.TodaySchedule>> schedules(
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        return ApiResponse.success(teacherApiService.schedules(startDate, endDate));
     }
 
     @GetMapping("/schedules/{id}/attendance")

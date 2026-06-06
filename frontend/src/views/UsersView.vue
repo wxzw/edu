@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { KeyRound, Plus, Search } from 'lucide-vue-next';
-import { onMounted, reactive, ref } from 'vue';
+import { KeyRound, Plus } from 'lucide-vue-next';
+import { nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { campusApi, roleApi, userApi } from '@/api/admin';
 import type { CampusRecord, RoleRecord, UserForm, UserRecord } from '@/types/admin';
 import { accountTypeText, statusText, statusType } from '@/utils/status';
+import SearchFilterBar from '@/components/SearchFilterBar.vue';
 
 const loading = ref(false);
 const dialogVisible = ref(false);
@@ -18,8 +19,10 @@ const total = ref(0);
 const roles = ref<RoleRecord[]>([]);
 const campuses = ref<CampusRecord[]>([]);
 const newPassword = ref('123456');
+let autoSearchTimer: number | undefined;
+let suppressAutoSearch = false;
 
-const query = reactive({ pageNo: 1, pageSize: 10, keyword: '', accountType: '', status: '' });
+const query = reactive({ pageNo: 1, pageSize: 10, keyword: '', accountType: '', status: '', loginDateRange: [] as string[] });
 const form = reactive<UserForm>({
   username: '',
   password: '',
@@ -52,12 +55,42 @@ const loadOptions = async () => {
 const loadData = async () => {
   loading.value = true;
   try {
-    const page = await userApi.page(query);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const params: any = { ...query };
+    if (query.loginDateRange && query.loginDateRange.length === 2) {
+      params.startDate = query.loginDateRange[0];
+      params.endDate = query.loginDateRange[1];
+    }
+    delete params.loginDateRange;
+    const page = await userApi.page(params);
     records.value = page.records;
     total.value = page.total;
   } finally {
     loading.value = false;
   }
+};
+
+const clearAutoSearchTimer = () => {
+  if (autoSearchTimer) {
+    window.clearTimeout(autoSearchTimer);
+    autoSearchTimer = undefined;
+  }
+};
+
+const searchNow = () => {
+  clearAutoSearchTimer();
+  query.pageNo = 1;
+  loadData();
+};
+
+const scheduleAutoSearch = () => {
+  if (suppressAutoSearch) return;
+  if (query.loginDateRange.length === 1) return;
+  clearAutoSearchTimer();
+  autoSearchTimer = window.setTimeout(() => {
+    query.pageNo = 1;
+    loadData();
+  }, 420);
 };
 
 const resetForm = () => {
@@ -143,7 +176,27 @@ const reloadAll = async () => {
   await Promise.all([loadOptions(), loadData()]);
 };
 
+const resetFilters = () => {
+  suppressAutoSearch = true;
+  clearAutoSearchTimer();
+  query.keyword = '';
+  query.accountType = '';
+  query.status = '';
+  query.loginDateRange = [];
+  query.pageNo = 1;
+  loadData();
+  nextTick(() => {
+    suppressAutoSearch = false;
+  });
+};
+
+watch(
+  () => [query.keyword, query.accountType, query.status, query.loginDateRange[0], query.loginDateRange[1]],
+  scheduleAutoSearch,
+);
+
 onMounted(reloadAll);
+onUnmounted(clearAutoSearchTimer);
 </script>
 
 <template>
@@ -160,22 +213,30 @@ onMounted(reloadAll);
     </section>
 
     <section class="table-surface">
-      <div class="table-toolbar">
-        <el-input v-model="query.keyword" clearable placeholder="用户名 / 姓名 / 电话" @keyup.enter="loadData">
-          <template #prefix><Search :size="16" /></template>
-        </el-input>
-        <el-select v-model="query.accountType" clearable placeholder="账号类型">
-          <el-option label="超级管理员" value="SUPER_ADMIN" />
-          <el-option label="校区管理员" value="CAMPUS_ADMIN" />
-          <el-option label="老师" value="TEACHER" />
-          <el-option label="家长" value="GUARDIAN" />
-        </el-select>
-        <el-select v-model="query.status" clearable placeholder="状态">
-          <el-option label="启用" value="ENABLED" />
-          <el-option label="停用" value="DISABLED" />
-        </el-select>
-        <el-button @click="loadData">查询</el-button>
-      </div>
+      <SearchFilterBar :loading="loading" show-reset @search="searchNow" @reset="resetFilters">
+        <template #filters>
+          <el-input v-model="query.keyword" clearable placeholder="用户名 / 姓名 / 电话" @keyup.enter="searchNow" />
+          <el-select v-model="query.accountType" clearable placeholder="账号类型">
+            <el-option label="超级管理员" value="SUPER_ADMIN" />
+            <el-option label="校区管理员" value="CAMPUS_ADMIN" />
+            <el-option label="老师" value="TEACHER" />
+            <el-option label="家长" value="GUARDIAN" />
+          </el-select>
+          <el-select v-model="query.status" clearable placeholder="状态">
+            <el-option label="启用" value="ENABLED" />
+            <el-option label="停用" value="DISABLED" />
+          </el-select>
+          <el-date-picker
+            v-model="query.loginDateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="登录开始"
+            end-placeholder="登录结束"
+            value-format="YYYY-MM-DD"
+            unlink-panels
+          />
+        </template>
+      </SearchFilterBar>
 
       <el-table v-loading="loading" :data="records" stripe>
         <el-table-column prop="username" label="账号" min-width="140" />

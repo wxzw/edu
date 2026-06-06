@@ -19,6 +19,12 @@
       }
     },
     {
+      "path": "pages/teacher/schedule/index",
+      "style": {
+        "navigationBarTitleText": "我的课表"
+      }
+    },
+    {
       "path": "pages/teacher/class/list",
       "style": {
         "navigationBarTitleText": "我的班级"

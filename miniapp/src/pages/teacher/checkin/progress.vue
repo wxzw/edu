@@ -1,66 +1,108 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { onLoad } from '@dcloudio/uni-app';
+import { computed, ref } from 'vue';
+import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app';
 import { requireIdentity } from '@/utils/auth-flow';
 import { getTeacherHomeworkDetail } from '@/api/teacher';
 import type { TeacherHomeworkDetail } from '@/types/api';
+import TeacherEmptyState from '@/components/TeacherEmptyState.vue';
+import TeacherHeroCard from '@/components/TeacherHeroCard.vue';
 
 const homework = ref<TeacherHomeworkDetail | null>(null);
+const homeworkId = ref(0);
 const loading = ref(false);
+
+const submissions = computed(() => homework.value?.submissions || []);
+const commentedCount = computed(() => submissions.value.filter((item) => item.status === 'COMMENTED').length);
+
+onLoad((options) => {
+  if (!requireIdentity('TEACHER')) return;
+  const id = options?.id ? Number(options.id) : 0;
+  if (id) {
+    homeworkId.value = id;
+    fetchDetail(id);
+  }
+});
+
+onPullDownRefresh(() => {
+  if (!homeworkId.value) {
+    uni.stopPullDownRefresh();
+    return;
+  }
+  fetchDetail(homeworkId.value).finally(() => uni.stopPullDownRefresh());
+});
 
 async function fetchDetail(id: number) {
   loading.value = true;
   try {
-    const res = await getTeacherHomeworkDetail(id);
-    homework.value = res;
-  } catch (e) {
-    uni.showToast({ title: '加载失败', icon: 'none' });
+    homework.value = await getTeacherHomeworkDetail(id);
+  } catch (error) {
+    uni.showToast({ title: error instanceof Error ? error.message : '加载失败', icon: 'none' });
   } finally {
     loading.value = false;
   }
 }
 
-onLoad((options) => {
-  if (!requireIdentity('TEACHER')) return;
-  const id = options?.id ? parseInt(options.id, 10) : 0;
-  if (id) fetchDetail(id);
-});
-
 function formatDate(date?: string) {
-  if (!date) return '';
-  return date.substring(0, 10);
+  return date ? date.substring(0, 10) : '未提交';
+}
+
+function statusLabel(status: string) {
+  if (status === 'SUBMITTED') return '已提交';
+  if (status === 'COMMENTED') return '已点评';
+  if (status === 'RESUBMIT_REQUIRED') return '需重交';
+  return status || '未知';
 }
 </script>
 
 <template>
   <view class="page">
-    <view class="hero">
-      <text class="eyebrow">Check-in Progress</text>
-      <text class="title">{{ homework?.title }}</text>
-    </view>
+    <TeacherHeroCard
+      eyebrow="Check-in Progress"
+      :title="homework?.title || '打卡进度'"
+      :subtitle="homework?.className || '班级打卡'"
+    >
+      <view class="hero-metrics">
+        <view class="metric">
+          <text class="metric-num">{{ submissions.length }}</text>
+          <text class="metric-label">提交</text>
+        </view>
+        <view class="metric">
+          <text class="metric-num">{{ commentedCount }}</text>
+          <text class="metric-label">已点评</text>
+        </view>
+      </view>
+    </TeacherHeroCard>
 
     <view class="panel">
-      <text class="panel-title">
-        打卡进度 ({{ homework?.submissions?.length || 0 }})
-      </text>
+      <view class="panel-head">
+        <text class="panel-title">学生打卡</text>
+        <text class="panel-subtitle">{{ submissions.length }} 条记录</text>
+      </view>
       <view
-        class="sub-row"
-        v-for="item in homework?.submissions"
+        v-for="item in submissions"
         :key="item.id"
+        class="sub-row"
       >
-        <view class="sub-info">
+        <image
+          v-if="item.studentAvatarUrl"
+          class="avatar"
+          :src="item.studentAvatarUrl"
+          mode="aspectFill"
+        />
+        <view v-else class="avatar avatar-fallback">{{ item.studentName.slice(0, 1) }}</view>
+        <view class="sub-main">
           <text class="sub-name">{{ item.studentName }}</text>
-          <text class="sub-time" v-if="item.submittedAt">
-            最近打卡 {{ formatDate(item.submittedAt) }}
-          </text>
+          <text class="sub-time">最近打卡 {{ formatDate(item.submittedAt) }}</text>
         </view>
-        <view class="sub-right">
-          <text class="sub-status" :class="item.status">{{ item.status }}</text>
-        </view>
+        <text class="status-pill" :class="{ done: item.status === 'COMMENTED' }">
+          {{ statusLabel(item.status) }}
+        </text>
       </view>
-      <view class="empty-row" v-if="!homework?.submissions?.length">
-        <text class="empty-text">暂无打卡记录</text>
-      </view>
+      <TeacherEmptyState
+        v-if="!submissions.length"
+        :title="loading ? '正在加载进度' : '暂无打卡记录'"
+        description="学生完成打卡后，会在这里展示提交进度。"
+      />
     </view>
   </view>
 </template>
@@ -68,101 +110,132 @@ function formatDate(date?: string) {
 <style scoped>
 .page {
   min-height: 100vh;
-  padding: 40rpx 32rpx 60rpx;
-  background: #f6f1e8;
+  padding: 34rpx 28rpx 70rpx;
+  box-sizing: border-box;
+  background: #f4efe6;
+  color: #17211d;
 }
 
-.hero {
-  padding: 34rpx;
-  border-radius: 22rpx;
-  background: linear-gradient(135deg, #1B3A2D 0%, #2D6A4F 100%);
+.hero-metrics {
+  margin-top: 28rpx;
+  display: flex;
+  gap: 12rpx;
+}
+
+.metric {
+  flex: 1;
+  padding: 16rpx;
+  border-radius: 20rpx;
+  background: rgba(255, 252, 245, 0.12);
+}
+
+.metric-num,
+.metric-label {
+  display: block;
+}
+
+.metric-num {
   color: #fff;
-}
-
-.eyebrow {
-  display: block;
-  color: #f0b84d;
-  font-size: 22rpx;
-  font-weight: 800;
-  letter-spacing: 2rpx;
-}
-
-.title {
-  display: block;
-  margin-top: 14rpx;
-  font-size: 40rpx;
+  font-size: 32rpx;
   font-weight: 900;
+}
+
+.metric-label {
+  margin-top: 4rpx;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 20rpx;
+  font-weight: 800;
 }
 
 .panel {
-  margin-top: 28rpx;
-  padding: 28rpx;
-  border-radius: 18rpx;
+  margin-top: 24rpx;
+  padding: 26rpx;
+  border-radius: 30rpx;
   background: #fffcf5;
+  box-shadow: 0 10rpx 28rpx rgba(54, 43, 30, 0.04);
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-bottom: 12rpx;
 }
 
 .panel-title {
-  display: block;
-  margin-bottom: 18rpx;
   color: #17211d;
-  font-size: 30rpx;
+  font-size: 31rpx;
   font-weight: 900;
 }
 
-.sub-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20rpx 0;
-  border-top: 1px solid #F0EAE0;
+.panel-subtitle {
+  color: #858982;
+  font-size: 22rpx;
+  font-weight: 800;
 }
 
-.sub-info {
+.sub-row {
+  min-height: 116rpx;
   display: flex;
-  flex-direction: column;
-  gap: 4rpx;
+  align-items: center;
+  gap: 18rpx;
+  border-top: 1rpx solid #eee5d8;
+}
+
+.avatar {
+  width: 72rpx;
+  height: 72rpx;
+  flex-shrink: 0;
+  border-radius: 24rpx;
+  background: #e7f0ed;
+}
+
+.avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1f5a44;
+  font-size: 27rpx;
+  font-weight: 900;
+}
+
+.sub-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.sub-name,
+.sub-time {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sub-name {
-  font-size: 28rpx;
-  font-weight: 700;
   color: #17211d;
+  font-size: 28rpx;
+  font-weight: 900;
 }
 
 .sub-time {
+  margin-top: 7rpx;
+  color: #858982;
   font-size: 22rpx;
-  color: #999;
 }
 
-.sub-right {
-  display: flex;
-  align-items: center;
+.status-pill {
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: #fff1d4;
+  color: #9a6710;
+  font-size: 21rpx;
+  font-weight: 900;
 }
 
-.sub-status {
-  font-size: 22rpx;
-  padding: 4rpx 12rpx;
-  border-radius: 8rpx;
-}
-
-.sub-status.SUBMITTED {
-  background: #fff3e0;
-  color: #e6a23c;
-}
-
-.sub-status.COMMENTED {
-  background: #e8f5e9;
-  color: #22624c;
-}
-
-.empty-row {
-  padding: 40rpx 0;
-  display: flex;
-  justify-content: center;
-}
-
-.empty-text {
-  font-size: 26rpx;
-  color: #999;
+.status-pill.done {
+  background: #e7f0ed;
+  color: #1f5a44;
 }
 </style>

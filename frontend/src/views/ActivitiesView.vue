@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { CalendarPlus, Search } from 'lucide-vue-next';
+import { CalendarPlus } from 'lucide-vue-next';
 import { onMounted, onUnmounted, reactive, ref } from 'vue';
 import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { activityApi, fileApi } from '@/api/admin';
 import type { ActivityForm, ActivityRecord, ActivityRegistrationRecord } from '@/types/admin';
 import { statusText, statusType } from '@/utils/status';
+import SearchFilterBar from '@/components/SearchFilterBar.vue';
 
 const loading = ref(false);
 const dialogVisible = ref(false);
@@ -18,7 +19,7 @@ const total = ref(0);
 const registrationTotal = ref(0);
 const activeActivity = ref<ActivityRecord>();
 
-const query = reactive({ pageNo: 1, pageSize: 10, keyword: '', status: '' });
+const query = reactive({ pageNo: 1, pageSize: 10, keyword: '', status: '', dateRange: [] as string[] });
 const registrationQuery = reactive({ pageNo: 1, pageSize: 10, activityId: undefined as number | undefined, status: '' });
 const form = reactive<ActivityForm>({
   title: '',
@@ -41,7 +42,14 @@ const rules: FormRules = {
 const loadData = async () => {
   loading.value = true;
   try {
-    const page = await activityApi.page(query);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const params: any = { ...query };
+    if (query.dateRange && query.dateRange.length === 2) {
+      params.startDate = query.dateRange[0];
+      params.endDate = query.dateRange[1];
+    }
+    delete params.dateRange;
+    const page = await activityApi.page(params);
     records.value = page.records;
     total.value = page.total;
   } finally {
@@ -118,6 +126,14 @@ const loadRegistrations = async () => {
 
 const formatTime = (value?: string) => value?.slice(0, 16).replace('T', ' ') || '-';
 
+const resetFilters = () => {
+  query.keyword = '';
+  query.status = '';
+  query.dateRange = [];
+  query.pageNo = 1;
+  loadData();
+};
+
 onMounted(() => {
   loadData();
   window.addEventListener('campus-change', loadData);
@@ -138,17 +154,25 @@ onUnmounted(() => window.removeEventListener('campus-change', loadData));
     </section>
 
     <section class="table-surface">
-      <div class="table-toolbar">
-        <el-input v-model="query.keyword" clearable placeholder="活动标题" @keyup.enter="loadData">
-          <template #prefix><Search :size="16" /></template>
-        </el-input>
-        <el-select v-model="query.status" clearable placeholder="状态">
-          <el-option label="草稿" value="DRAFT" />
-          <el-option label="已发布" value="PUBLISHED" />
-          <el-option label="已取消" value="CANCELLED" />
-        </el-select>
-        <el-button @click="loadData">查询</el-button>
-      </div>
+      <SearchFilterBar :loading="loading" show-reset @search="loadData" @reset="resetFilters">
+        <template #filters>
+          <el-input v-model="query.keyword" clearable placeholder="活动标题" @keyup.enter="loadData" />
+          <el-select v-model="query.status" clearable placeholder="状态">
+            <el-option label="草稿" value="DRAFT" />
+            <el-option label="已发布" value="PUBLISHED" />
+            <el-option label="已取消" value="CANCELLED" />
+          </el-select>
+          <el-date-picker
+            v-model="query.dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="活动开始"
+            end-placeholder="活动结束"
+            value-format="YYYY-MM-DD"
+            unlink-panels
+          />
+        </template>
+      </SearchFilterBar>
 
       <el-table v-loading="loading" :data="records" stripe>
         <el-table-column prop="title" label="活动" min-width="220" />
