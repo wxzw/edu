@@ -9,8 +9,10 @@ import com.community.edu.teacher.dto.TeacherRequests;
 import com.community.edu.teacher.dto.TeacherResponses;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,15 @@ public class TeacherApiService {
 
     private static final int TODO_LIMIT = 5;
     private static final int RECORD_LIMIT = 50;
+    private static final Set<String> SUPPORTED_ATTENDANCE_STATUSES = Set.of(
+        "PRESENT", "LATE", "LEAVE_EARLY", "ABSENT", "SICK_LEAVE", "PERSONAL_LEAVE", "MAKEUP"
+    );
+    private static final Set<String> REMARK_REQUIRED_ATTENDANCE_STATUSES = Set.of(
+        "ABSENT", "SICK_LEAVE", "PERSONAL_LEAVE"
+    );
+    private static final Set<String> DEDUCTIBLE_ATTENDANCE_STATUSES = Set.of(
+        "PRESENT", "LATE", "LEAVE_EARLY", "ABSENT", "MAKEUP"
+    );
 
     private final TeacherScopeService scopeService;
     private final TeacherMiniappMapper mapper;
@@ -211,6 +222,18 @@ public class TeacherApiService {
             .toList();
     }
 
+    public List<TeacherResponses.TodaySchedule> schedules(LocalDate startDate, LocalDate endDate) {
+        TeacherContext context = scopeService.resolve();
+        LocalDate start = startDate == null ? LocalDate.now().withDayOfMonth(1) : startDate;
+        LocalDate end = endDate == null ? start.plusMonths(1).minusDays(1) : endDate;
+        if (end.isBefore(start)) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "结束日期不能早于开始日期");
+        }
+        return mapper.selectSchedules(context.campusId(), context.teacherId(), start, end).stream()
+            .map(this::toTodaySchedule)
+            .toList();
+    }
+
     public TeacherResponses.AttendanceDetail attendanceDetail(Long scheduleId) {
         TeacherContext context = scopeService.resolve();
         TeacherMiniappRows.ScheduleDetailRow schedule = mapper.selectScheduleDetail(
@@ -223,11 +246,16 @@ public class TeacherApiService {
         detail.setScheduleId(schedule.getId());
         detail.setClassId(schedule.getClassId());
         detail.setClassName(schedule.getClassName());
+        detail.setCourseId(schedule.getCourseId());
+        detail.setCourseName(schedule.getCourseName());
         detail.setLessonDate(schedule.getLessonDate());
         detail.setStartTime(schedule.getStartTime());
         detail.setEndTime(schedule.getEndTime());
         detail.setTopic(schedule.getTopic());
+        detail.setClassroom(schedule.getClassroom());
         detail.setLessonHours(schedule.getLessonHours());
+        detail.setStudentCount(zeroIfNull(schedule.getStudentCount()));
+        detail.setAttendanceCount(zeroIfNull(schedule.getAttendanceCount()));
         detail.setStudents(mapper.selectAttendanceStudents(context.campusId(), schedule.getClassId(), scheduleId).stream()
             .map(this::toAttendanceStudentItem)
             .toList());
@@ -236,6 +264,9 @@ public class TeacherApiService {
 
     @Transactional
     public void batchAttendance(Long scheduleId, TeacherRequests.BatchAttendanceRequest request) {
+        if (request == null || request.getAttendances() == null || request.getAttendances().isEmpty()) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "考勤明细不能为空");
+        }
         TeacherContext context = scopeService.resolve();
         TeacherMiniappRows.ScheduleDetailRow schedule = mapper.selectScheduleDetail(
             context.campusId(), context.teacherId(), scheduleId
@@ -243,22 +274,32 @@ public class TeacherApiService {
         if (schedule == null) {
             throw new BizException(ErrorCode.NOT_FOUND, "课程不存在或无权操作");
         }
+        List<TeacherMiniappRows.AttendanceStudentRow> classStudents = mapper.selectAttendanceStudents(
+            context.campusId(), schedule.getClassId(), scheduleId
+        );
         for (TeacherRequests.AttendanceItem item : request.getAttendances()) {
+            validateAttendanceItem(item, classStudents);
             mapper.upsertAttendance(
                 context.campusId(), scheduleId, schedule.getClassId(),
-                item.getStudentId(), item.getStatus(), item.getRemark(), context.teacherId()
+                item.getStudentId(), item.getStatus(), item.getRemark(), context.currentUser().getUserId()
             );
         }
     }
 
     @Transactional
     public void deductLessonHours(Long scheduleId, TeacherRequests.DeductLessonHoursRequest request) {
+        if (request == null) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "扣课请求不能为空");
+        }
         TeacherContext context = scopeService.resolve();
         TeacherMiniappRows.ScheduleDetailRow schedule = mapper.selectScheduleDetail(
             context.campusId(), context.teacherId(), scheduleId
         );
         if (schedule == null) {
             throw new BizException(ErrorCode.NOT_FOUND, "课程不存在或无权操作");
+        }
+        if (request.getScheduleId() != null && !scheduleId.equals(request.getScheduleId())) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "扣课课程与请求路径不一致");
         }
         List<TeacherMiniappRows.AttendanceStudentRow> students = mapper.selectAttendanceStudents(
             context.campusId(), schedule.getClassId(), scheduleId
@@ -267,17 +308,22 @@ public class TeacherApiService {
             if (request.getStudentIds() != null && !request.getStudentIds().contains(student.getStudentId())) {
                 continue;
             }
-            if (shouldDeductHours(student.getStatus())) {
-                // 获取学生课时账户对应的课程ID
-                Long courseId = schedule.getId();
-                mapper.insertLessonHourConsume(
-                    context.campusId(), student.getStudentId(), courseId,
-                    schedule.getClassId(), scheduleId, context.teacherId(),
+            if (shouldDeductHours(student.getStatus()) && student.getHourRecordId() == null) {
+                Long hourRecordId = mapper.insertLessonHourConsume(
+                    context.campusId(), student.getStudentId(), schedule.getCourseId(),
+                    schedule.getClassId(), scheduleId, context.currentUser().getUserId(),
                     schedule.getLessonHours(), "上课扣减"
                 );
+                if (hourRecordId == null) {
+                    throw new BizException(ErrorCode.BAD_REQUEST, student.getStudentName() + "没有可扣减的课时账户");
+                }
                 mapper.deductLessonHours(
-                    context.campusId(), student.getStudentId(), courseId,
-                    schedule.getLessonHours(), context.teacherId()
+                    context.campusId(), student.getStudentId(), schedule.getCourseId(),
+                    schedule.getLessonHours(), context.currentUser().getUserId()
+                );
+                mapper.updateAttendanceDeductResult(
+                    context.campusId(), student.getAttendanceId(), schedule.getLessonHours(),
+                    hourRecordId, context.currentUser().getUserId()
                 );
             }
         }
@@ -330,13 +376,23 @@ public class TeacherApiService {
     }
 
     private boolean shouldDeductHours(String attendanceStatus) {
-        if (attendanceStatus == null) {
-            return false;
+        return DEDUCTIBLE_ATTENDANCE_STATUSES.contains(attendanceStatus);
+    }
+
+    private void validateAttendanceItem(TeacherRequests.AttendanceItem item,
+                                        List<TeacherMiniappRows.AttendanceStudentRow> classStudents) {
+        if (!SUPPORTED_ATTENDANCE_STATUSES.contains(item.getStatus())) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "不支持的考勤状态");
         }
-        return switch (attendanceStatus) {
-            case "PRESENT", "LATE", "LEAVE_EARLY", "ABSENT" -> true;
-            default -> false;
-        };
+        boolean inClass = classStudents.stream()
+            .anyMatch(student -> student.getStudentId().equals(item.getStudentId()));
+        if (!inClass) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "学生不属于当前班级");
+        }
+        if (REMARK_REQUIRED_ATTENDANCE_STATUSES.contains(item.getStatus())
+            && !StringUtils.hasText(item.getRemark())) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "缺勤或请假必须填写备注");
+        }
     }
 
     private String maskPhone(String phone) {

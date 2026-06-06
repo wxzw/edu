@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { Search } from 'lucide-vue-next';
 import { onMounted, onUnmounted, reactive, ref } from 'vue';
 import { orderApi, paymentApi } from '@/api/admin';
 import type { OrderRecord, PaymentRecord } from '@/types/admin';
+import SearchFilterBar from '@/components/SearchFilterBar.vue';
 
 const activeTab = ref<'orders' | 'payments'>('orders');
 const loading = ref(false);
@@ -10,13 +10,20 @@ const orders = ref<OrderRecord[]>([]);
 const payments = ref<PaymentRecord[]>([]);
 const orderTotal = ref(0);
 const paymentTotal = ref(0);
-const orderQuery = reactive({ pageNo: 1, pageSize: 10, orderType: '', payStatus: '' });
-const paymentQuery = reactive({ pageNo: 1, pageSize: 10, status: '' });
+const orderQuery = reactive({ pageNo: 1, pageSize: 10, orderType: '', payStatus: '', dateRange: [] as string[] });
+const paymentQuery = reactive({ pageNo: 1, pageSize: 10, status: '', dateRange: [] as string[] });
 
 const loadOrders = async () => {
   loading.value = true;
   try {
-    const page = await orderApi.page(orderQuery);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const params: any = { ...orderQuery };
+    if (orderQuery.dateRange && orderQuery.dateRange.length === 2) {
+      params.startDate = orderQuery.dateRange[0];
+      params.endDate = orderQuery.dateRange[1];
+    }
+    delete params.dateRange;
+    const page = await orderApi.page(params);
     orders.value = page.records;
     orderTotal.value = page.total;
   } finally {
@@ -27,12 +34,34 @@ const loadOrders = async () => {
 const loadPayments = async () => {
   loading.value = true;
   try {
-    const page = await paymentApi.page(paymentQuery);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const params: any = { ...paymentQuery };
+    if (paymentQuery.dateRange && paymentQuery.dateRange.length === 2) {
+      params.startDate = paymentQuery.dateRange[0];
+      params.endDate = paymentQuery.dateRange[1];
+    }
+    delete params.dateRange;
+    const page = await paymentApi.page(params);
     payments.value = page.records;
     paymentTotal.value = page.total;
   } finally {
     loading.value = false;
   }
+};
+
+const resetOrderFilters = () => {
+  orderQuery.orderType = '';
+  orderQuery.payStatus = '';
+  orderQuery.dateRange = [];
+  orderQuery.pageNo = 1;
+  loadOrders();
+};
+
+const resetPaymentFilters = () => {
+  paymentQuery.status = '';
+  paymentQuery.dateRange = [];
+  paymentQuery.pageNo = 1;
+  loadPayments();
 };
 
 const loadData = () => activeTab.value === 'orders' ? loadOrders() : loadPayments();
@@ -56,17 +85,27 @@ onUnmounted(() => window.removeEventListener('campus-change', loadData));
     </section>
 
     <section v-if="activeTab === 'orders'" class="table-surface">
-      <div class="table-toolbar">
-        <el-select v-model="orderQuery.orderType" clearable placeholder="订单类型">
-          <el-option label="活动" value="ACTIVITY" />
-          <el-option label="课程" value="COURSE" />
-        </el-select>
-        <el-select v-model="orderQuery.payStatus" clearable placeholder="支付状态">
-          <el-option label="未支付" value="UNPAID" />
-          <el-option label="已支付" value="PAID" />
-        </el-select>
-        <el-button @click="loadOrders"><Search :size="16" /> 查询</el-button>
-      </div>
+      <SearchFilterBar :loading="loading" show-reset @search="loadOrders" @reset="resetOrderFilters">
+        <template #filters>
+          <el-select v-model="orderQuery.orderType" clearable placeholder="订单类型">
+            <el-option label="活动" value="ACTIVITY" />
+            <el-option label="课程" value="COURSE" />
+          </el-select>
+          <el-select v-model="orderQuery.payStatus" clearable placeholder="支付状态">
+            <el-option label="未支付" value="UNPAID" />
+            <el-option label="已支付" value="PAID" />
+          </el-select>
+          <el-date-picker
+            v-model="orderQuery.dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="创建开始"
+            end-placeholder="创建结束"
+            value-format="YYYY-MM-DD"
+            unlink-panels
+          />
+        </template>
+      </SearchFilterBar>
       <el-table v-loading="loading" :data="orders" stripe>
         <el-table-column prop="orderNo" label="订单号" min-width="160" />
         <el-table-column prop="studentName" label="学生" width="110" />
@@ -84,13 +123,23 @@ onUnmounted(() => window.removeEventListener('campus-change', loadData));
     </section>
 
     <section v-else class="table-surface">
-      <div class="table-toolbar">
-        <el-select v-model="paymentQuery.status" clearable placeholder="流水状态">
-          <el-option label="成功" value="SUCCESS" />
-          <el-option label="失败" value="FAILED" />
-        </el-select>
-        <el-button @click="loadPayments"><Search :size="16" /> 查询</el-button>
-      </div>
+      <SearchFilterBar :loading="loading" show-reset @search="loadPayments" @reset="resetPaymentFilters">
+        <template #filters>
+          <el-select v-model="paymentQuery.status" clearable placeholder="流水状态">
+            <el-option label="成功" value="SUCCESS" />
+            <el-option label="失败" value="FAILED" />
+          </el-select>
+          <el-date-picker
+            v-model="paymentQuery.dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="支付开始"
+            end-placeholder="支付结束"
+            value-format="YYYY-MM-DD"
+            unlink-panels
+          />
+        </template>
+      </SearchFilterBar>
       <el-table v-loading="loading" :data="payments" stripe>
         <el-table-column prop="paymentNo" label="支付流水号" min-width="170" />
         <el-table-column prop="orderNo" label="订单号" min-width="160" />

@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { Plus, Search } from 'lucide-vue-next';
+import { Plus, ShieldCheck } from 'lucide-vue-next';
 import { onMounted, reactive, ref } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { ElMessage } from 'element-plus';
 import { campusApi, roleApi } from '@/api/admin';
 import type { CampusRecord, PermissionNode, RoleForm, RoleRecord } from '@/types/admin';
 import { dataScopeText, statusText, statusType } from '@/utils/status';
+import SearchFilterBar from '@/components/SearchFilterBar.vue';
 
 const loading = ref(false);
 const dialogVisible = ref(false);
@@ -93,15 +94,32 @@ const reloadAll = async () => {
   await Promise.all([loadOptions(), loadData()]);
 };
 
+const resetFilters = () => {
+  query.keyword = '';
+  query.status = '';
+  query.pageNo = 1;
+  loadData();
+};
+
 onMounted(reloadAll);
 </script>
 
 <template>
   <div class="page-stack">
     <section class="page-heading">
-      <div>
-        <p class="eyebrow">RBAC</p>
-        <h2>角色权限</h2>
+      <div class="heading-main">
+        <span class="heading-icon">
+          <ShieldCheck :size="22" />
+        </span>
+        <div>
+          <p class="eyebrow">RBAC</p>
+          <h2>角色权限</h2>
+          <div class="heading-summary">
+            <span class="summary-pill"><strong>{{ total }}</strong> 总量</span>
+            <span class="summary-pill"><strong>{{ records.length }}</strong> 当前页</span>
+            <span class="summary-pill"><strong>{{ permissionTree.length }}</strong> 权限组</span>
+          </div>
+        </div>
       </div>
       <el-button type="primary" @click="openCreate">
         <Plus :size="17" />
@@ -110,38 +128,64 @@ onMounted(reloadAll);
     </section>
 
     <section class="table-surface">
-      <div class="table-toolbar">
-        <el-input v-model="query.keyword" clearable placeholder="角色名称 / 编码" @keyup.enter="loadData">
-          <template #prefix><Search :size="16" /></template>
-        </el-input>
-        <el-select v-model="query.status" clearable placeholder="状态">
-          <el-option label="启用" value="ENABLED" />
-          <el-option label="停用" value="DISABLED" />
-        </el-select>
-        <el-button @click="loadData">查询</el-button>
+      <div class="surface-header">
+        <div>
+          <h3>角色列表</h3>
+          <p>共 {{ total }} 个角色，当前显示 {{ records.length }} 个</p>
+        </div>
       </div>
 
-      <el-table v-loading="loading" :data="records" stripe>
-        <el-table-column prop="code" label="编码" min-width="150" />
-        <el-table-column prop="name" label="角色" min-width="140" />
-        <el-table-column label="校区" width="120">
-          <template #default="{ row }">{{ campusLabel(row.campusId) }}</template>
-        </el-table-column>
-        <el-table-column label="数据范围" width="130">
-          <template #default="{ row }">{{ dataScopeText[row.dataScope] || row.dataScope }}</template>
-        </el-table-column>
-        <el-table-column prop="remark" label="备注" min-width="220" show-overflow-tooltip />
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="statusType(row.status)" effect="plain">{{ statusText[row.status] || row.status }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="100" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <SearchFilterBar :loading="loading" show-reset @search="loadData" @reset="resetFilters">
+        <template #filters>
+          <el-input v-model="query.keyword" clearable placeholder="角色名称 / 编码" @keyup.enter="loadData" />
+          <el-select v-model="query.status" clearable placeholder="状态">
+            <el-option label="启用" value="ENABLED" />
+            <el-option label="停用" value="DISABLED" />
+          </el-select>
+        </template>
+      </SearchFilterBar>
+
+      <div class="table-frame">
+        <el-table v-loading="loading" :data="records" stripe>
+          <el-table-column prop="code" label="编码" min-width="150">
+            <template #default="{ row }">
+              <span class="code-pill">{{ row.code }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="name" label="角色" min-width="150">
+            <template #default="{ row }">
+              <span class="cell-title">{{ row.name }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="校区" width="130">
+            <template #default="{ row }">
+              <span class="text-pill">{{ campusLabel(row.campusId) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="数据范围" width="140">
+            <template #default="{ row }">
+              <span class="scope-pill">{{ dataScopeText[row.dataScope] || row.dataScope }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="remark" label="备注" min-width="220" show-overflow-tooltip>
+            <template #default="{ row }">
+              <span class="cell-subtitle">{{ row.remark || '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag class="status-tag" :type="statusType(row.status)" effect="plain">{{ statusText[row.status] || row.status }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="100" fixed="right">
+            <template #default="{ row }">
+              <div class="table-actions">
+                <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
 
       <div class="pagination-row">
         <el-pagination

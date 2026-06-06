@@ -47,6 +47,8 @@ public class AdminClassService {
                 .like(EduClass::getName, query.getKeyword())
                 .or()
                 .like(EduClass::getClassNo, query.getKeyword()))
+            .ge(query.getStartDate() != null, EduClass::getStartDate, query.getStartDate())
+            .le(query.getEndDate() != null, EduClass::getStartDate, query.getEndDate())
             .orderByDesc(EduClass::getId);
         Page<EduClass> page = classMapper.selectPage(Page.of(query.getPageNo(), query.getPageSize()), wrapper);
         return PageResponse.of(page.getRecords().stream().map(ClassResponse::from).toList(),

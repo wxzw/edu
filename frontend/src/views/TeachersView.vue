@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { Plus, Search } from 'lucide-vue-next';
+import { Plus } from 'lucide-vue-next';
 import { onMounted, onUnmounted, reactive, ref } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { teacherApi } from '@/api/admin';
 import type { TeacherForm, TeacherRecord } from '@/types/admin';
 import { statusText, statusType } from '@/utils/status';
+import SearchFilterBar from '@/components/SearchFilterBar.vue';
 
 const loading = ref(false);
 const dialogVisible = ref(false);
@@ -14,7 +15,7 @@ const formRef = ref<FormInstance>();
 const records = ref<TeacherRecord[]>([]);
 const total = ref(0);
 
-const query = reactive({ pageNo: 1, pageSize: 10, keyword: '', status: '' });
+const query = reactive({ pageNo: 1, pageSize: 10, keyword: '', status: '', hireDateRange: [] as string[] });
 const form = reactive<TeacherForm>({
   employeeNo: '',
   name: '',
@@ -33,12 +34,27 @@ const rules: FormRules = {
 const loadData = async () => {
   loading.value = true;
   try {
-    const page = await teacherApi.page(query);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const params: any = { ...query };
+    if (query.hireDateRange && query.hireDateRange.length === 2) {
+      params.startDate = query.hireDateRange[0];
+      params.endDate = query.hireDateRange[1];
+    }
+    delete params.hireDateRange;
+    const page = await teacherApi.page(params);
     records.value = page.records;
     total.value = page.total;
   } finally {
     loading.value = false;
   }
+};
+
+const resetFilters = () => {
+  query.keyword = '';
+  query.status = '';
+  query.hireDateRange = [];
+  query.pageNo = 1;
+  loadData();
 };
 
 const resetForm = () => {
@@ -109,16 +125,24 @@ onUnmounted(() => window.removeEventListener('campus-change', loadData));
     </section>
 
     <section class="table-surface">
-      <div class="table-toolbar">
-        <el-input v-model="query.keyword" clearable placeholder="姓名 / 工号 / 电话" @keyup.enter="loadData">
-          <template #prefix><Search :size="16" /></template>
-        </el-input>
-        <el-select v-model="query.status" clearable placeholder="状态">
-          <el-option label="启用" value="ENABLED" />
-          <el-option label="停用" value="DISABLED" />
-        </el-select>
-        <el-button @click="loadData">查询</el-button>
-      </div>
+      <SearchFilterBar :loading="loading" show-reset @search="loadData" @reset="resetFilters">
+        <template #filters>
+          <el-input v-model="query.keyword" clearable placeholder="姓名 / 工号 / 电话" @keyup.enter="loadData" />
+          <el-select v-model="query.status" clearable placeholder="状态">
+            <el-option label="启用" value="ENABLED" />
+            <el-option label="停用" value="DISABLED" />
+          </el-select>
+          <el-date-picker
+            v-model="query.hireDateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="入职开始"
+            end-placeholder="入职结束"
+            value-format="YYYY-MM-DD"
+            unlink-panels
+          />
+        </template>
+      </SearchFilterBar>
 
       <el-table v-loading="loading" :data="records" stripe>
         <el-table-column prop="employeeNo" label="工号" min-width="130" />

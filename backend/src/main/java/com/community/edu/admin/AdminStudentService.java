@@ -39,6 +39,8 @@ public class AdminStudentService {
                 .like(EduStudent::getNickname, query.getKeyword())
                 .or()
                 .like(EduStudent::getSchool, query.getKeyword()))
+            .ge(query.getStartDate() != null, EduStudent::getEnrolledAt, query.getStartDate())
+            .le(query.getEndDate() != null, EduStudent::getEnrolledAt, query.getEndDate())
             .orderByDesc(EduStudent::getId);
         Page<EduStudent> page = studentMapper.selectPage(Page.of(query.getPageNo(), query.getPageSize()), wrapper);
         return PageResponse.of(page.getRecords().stream().map(StudentResponse::from).toList(),

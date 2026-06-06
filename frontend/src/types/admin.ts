@@ -235,6 +235,8 @@ export interface AdminPageQuery extends PageQuery {
   orderId?: number;
   bizType?: string;
   receiverStudentId?: number;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface AdminFileInfo {

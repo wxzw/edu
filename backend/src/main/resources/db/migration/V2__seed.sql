@@ -286,7 +286,7 @@ INSERT INTO edu_attendance (
   id, campus_id, schedule_id, class_id, student_id, status, check_time, checked_by, consumed_hours, hour_record_id, remark, created_by, updated_by
 ) VALUES
   (14501, 1001, 5001, 4001, 7001, 'PRESENT', TIMESTAMPTZ '2026-06-06 09:05:00+08', 3, 2, 14002, '正常出勤', 3, 3),
-  (14502, 1001, 5001, 4001, 7002, 'LEAVE', TIMESTAMPTZ '2026-06-06 09:10:00+08', 3, 0, NULL, '家长提前请假，不扣课时', 3, 3)
+  (14502, 1001, 5001, 4001, 7002, 'PERSONAL_LEAVE', TIMESTAMPTZ '2026-06-06 09:10:00+08', 3, 0, NULL, '家长提前请假，不扣课时', 3, 3)
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO edu_homework (

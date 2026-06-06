@@ -36,6 +36,8 @@ public class AdminTeacherService {
                 .like(EduTeacher::getEmployeeNo, query.getKeyword())
                 .or()
                 .like(EduTeacher::getPhone, query.getKeyword()))
+            .ge(query.getStartDate() != null, EduTeacher::getHireDate, query.getStartDate())
+            .le(query.getEndDate() != null, EduTeacher::getHireDate, query.getEndDate())
             .orderByDesc(EduTeacher::getId);
         Page<EduTeacher> page = teacherMapper.selectPage(Page.of(query.getPageNo(), query.getPageSize()), wrapper);
         return PageResponse.of(page.getRecords().stream().map(TeacherResponse::from).toList(),

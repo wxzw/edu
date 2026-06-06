@@ -144,6 +144,27 @@ export interface ScheduleItem {
   onlineUrl?: string;
 }
 
+export interface CalendarScheduleItem {
+  id: number;
+  classId?: number;
+  className?: string;
+  courseId?: number;
+  courseName?: string;
+  teacherName?: string;
+  lessonNo?: number;
+  lessonDate: string;
+  startTime: string;
+  endTime: string;
+  topic: string;
+  content?: string;
+  lessonHours?: number;
+  status: string;
+  classroom?: string;
+  onlineUrl?: string;
+  studentCount?: number;
+  attendanceCount?: number;
+}
+
 export interface TodoItem {
   id?: number;
   bizType: string;
@@ -612,26 +633,40 @@ export interface AttendanceStudentItem {
   studentId: number;
   studentName: string;
   studentAvatarUrl?: string;
-  status: string;
+  status: AttendanceStatus | 'UNSET' | string;
   remark?: string;
 }
+
+export type AttendanceStatus =
+  | 'PRESENT'
+  | 'LATE'
+  | 'LEAVE_EARLY'
+  | 'ABSENT'
+  | 'SICK_LEAVE'
+  | 'PERSONAL_LEAVE'
+  | 'MAKEUP';
 
 export interface AttendanceDetail {
   scheduleId: number;
   classId: number;
   className: string;
+  courseId?: number;
+  courseName?: string;
   lessonDate: string;
   startTime: string;
   endTime: string;
   topic: string;
+  classroom?: string;
   lessonHours: number;
+  studentCount?: number;
+  attendanceCount?: number;
   students: AttendanceStudentItem[];
 }
 
 export interface BatchAttendanceRequest {
   attendances: Array<{
     studentId: number;
-    status: string;
+    status: AttendanceStatus;
     remark?: string;
   }>;
 }

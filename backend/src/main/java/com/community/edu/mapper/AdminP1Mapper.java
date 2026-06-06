@@ -3,6 +3,7 @@ package com.community.edu.mapper;
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.community.edu.admin.dto.AdminP1Rows;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
@@ -127,6 +128,8 @@ public interface AdminP1Mapper {
               OR m.title ILIKE CONCAT('%', CAST(#{keyword} AS varchar), '%')
               OR m.description ILIKE CONCAT('%', CAST(#{keyword} AS varchar), '%')
           )
+          AND (CAST(#{startDate} AS date) IS NULL OR m.created_at >= #{startDate})
+          AND (CAST(#{endDate} AS date) IS NULL OR m.created_at < (CAST(#{endDate} AS date) + 1))
         """)
     long countMaterials(
         @Param("campusId") Long campusId,
@@ -135,7 +138,9 @@ public interface AdminP1Mapper {
         @Param("resourceType") String resourceType,
         @Param("studyType") String studyType,
         @Param("visibility") String visibility,
-        @Param("status") String status
+        @Param("status") String status,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
     );
 
     @InterceptorIgnore(tenantLine = "true")
@@ -195,6 +200,8 @@ public interface AdminP1Mapper {
               OR m.title ILIKE CONCAT('%', CAST(#{keyword} AS varchar), '%')
               OR m.description ILIKE CONCAT('%', CAST(#{keyword} AS varchar), '%')
           )
+          AND (CAST(#{startDate} AS date) IS NULL OR m.created_at >= #{startDate})
+          AND (CAST(#{endDate} AS date) IS NULL OR m.created_at < (CAST(#{endDate} AS date) + 1))
         ORDER BY m.updated_at DESC, m.id DESC
         LIMIT #{pageSize} OFFSET #{offset}
         """)
@@ -206,6 +213,8 @@ public interface AdminP1Mapper {
         @Param("studyType") String studyType,
         @Param("visibility") String visibility,
         @Param("status") String status,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate,
         @Param("pageSize") long pageSize,
         @Param("offset") long offset
     );
@@ -388,11 +397,15 @@ public interface AdminP1Mapper {
           AND a.deleted = 0
           AND (CAST(#{status} AS varchar) IS NULL OR a.status = #{status})
           AND (CAST(#{keyword} AS varchar) IS NULL OR a.title ILIKE CONCAT('%', CAST(#{keyword} AS varchar), '%'))
+          AND (CAST(#{startDate} AS date) IS NULL OR a.start_time >= #{startDate})
+          AND (CAST(#{endDate} AS date) IS NULL OR a.start_time <= #{endDate})
         """)
     long countActivities(
         @Param("campusId") Long campusId,
         @Param("keyword") String keyword,
-        @Param("status") String status
+        @Param("status") String status,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
     );
 
     @InterceptorIgnore(tenantLine = "true")
@@ -421,6 +434,8 @@ public interface AdminP1Mapper {
           AND a.deleted = 0
           AND (CAST(#{status} AS varchar) IS NULL OR a.status = #{status})
           AND (CAST(#{keyword} AS varchar) IS NULL OR a.title ILIKE CONCAT('%', CAST(#{keyword} AS varchar), '%'))
+          AND (CAST(#{startDate} AS date) IS NULL OR a.start_time >= #{startDate})
+          AND (CAST(#{endDate} AS date) IS NULL OR a.start_time <= #{endDate})
         ORDER BY a.start_time DESC, a.id DESC
         LIMIT #{pageSize} OFFSET #{offset}
         """)
@@ -428,6 +443,8 @@ public interface AdminP1Mapper {
         @Param("campusId") Long campusId,
         @Param("keyword") String keyword,
         @Param("status") String status,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate,
         @Param("pageSize") long pageSize,
         @Param("offset") long offset
     );
@@ -547,11 +564,15 @@ public interface AdminP1Mapper {
           AND reg.deleted = 0
           AND (CAST(#{activityId} AS bigint) IS NULL OR reg.activity_id = #{activityId})
           AND (CAST(#{status} AS varchar) IS NULL OR reg.status = #{status})
+          AND (CAST(#{startDate} AS date) IS NULL OR reg.registered_at >= #{startDate})
+          AND (CAST(#{endDate} AS date) IS NULL OR reg.registered_at < (CAST(#{endDate} AS date) + 1))
         """)
     long countRegistrations(
         @Param("campusId") Long campusId,
         @Param("activityId") Long activityId,
-        @Param("status") String status
+        @Param("status") String status,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
     );
 
     @InterceptorIgnore(tenantLine = "true")
@@ -585,6 +606,8 @@ public interface AdminP1Mapper {
           AND reg.deleted = 0
           AND (CAST(#{activityId} AS bigint) IS NULL OR reg.activity_id = #{activityId})
           AND (CAST(#{status} AS varchar) IS NULL OR reg.status = #{status})
+          AND (CAST(#{startDate} AS date) IS NULL OR reg.registered_at >= #{startDate})
+          AND (CAST(#{endDate} AS date) IS NULL OR reg.registered_at < (CAST(#{endDate} AS date) + 1))
         ORDER BY reg.registered_at DESC, reg.id DESC
         LIMIT #{pageSize} OFFSET #{offset}
         """)
@@ -592,6 +615,8 @@ public interface AdminP1Mapper {
         @Param("campusId") Long campusId,
         @Param("activityId") Long activityId,
         @Param("status") String status,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate,
         @Param("pageSize") long pageSize,
         @Param("offset") long offset
     );
@@ -605,12 +630,16 @@ public interface AdminP1Mapper {
           AND (CAST(#{orderType} AS varchar) IS NULL OR o.order_type = #{orderType})
           AND (CAST(#{payStatus} AS varchar) IS NULL OR o.pay_status = #{payStatus})
           AND (CAST(#{studentId} AS bigint) IS NULL OR o.student_id = #{studentId})
+          AND (CAST(#{startDate} AS date) IS NULL OR o.created_at >= #{startDate})
+          AND (CAST(#{endDate} AS date) IS NULL OR o.created_at < (CAST(#{endDate} AS date) + 1))
         """)
     long countOrders(
         @Param("campusId") Long campusId,
         @Param("orderType") String orderType,
         @Param("payStatus") String payStatus,
-        @Param("studentId") Long studentId
+        @Param("studentId") Long studentId,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
     );
 
     @InterceptorIgnore(tenantLine = "true")
@@ -646,6 +675,8 @@ public interface AdminP1Mapper {
           AND (CAST(#{orderType} AS varchar) IS NULL OR o.order_type = #{orderType})
           AND (CAST(#{payStatus} AS varchar) IS NULL OR o.pay_status = #{payStatus})
           AND (CAST(#{studentId} AS bigint) IS NULL OR o.student_id = #{studentId})
+          AND (CAST(#{startDate} AS date) IS NULL OR o.created_at >= #{startDate})
+          AND (CAST(#{endDate} AS date) IS NULL OR o.created_at < (CAST(#{endDate} AS date) + 1))
         ORDER BY o.created_at DESC, o.id DESC
         LIMIT #{pageSize} OFFSET #{offset}
         """)
@@ -654,6 +685,8 @@ public interface AdminP1Mapper {
         @Param("orderType") String orderType,
         @Param("payStatus") String payStatus,
         @Param("studentId") Long studentId,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate,
         @Param("pageSize") long pageSize,
         @Param("offset") long offset
     );
@@ -666,11 +699,15 @@ public interface AdminP1Mapper {
           AND p.deleted = 0
           AND (CAST(#{status} AS varchar) IS NULL OR p.status = #{status})
           AND (CAST(#{orderId} AS bigint) IS NULL OR p.order_id = #{orderId})
+          AND (CAST(#{startDate} AS date) IS NULL OR p.paid_at >= #{startDate})
+          AND (CAST(#{endDate} AS date) IS NULL OR p.paid_at < (CAST(#{endDate} AS date) + 1))
         """)
     long countPayments(
         @Param("campusId") Long campusId,
         @Param("status") String status,
-        @Param("orderId") Long orderId
+        @Param("orderId") Long orderId,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
     );
 
     @InterceptorIgnore(tenantLine = "true")
@@ -694,6 +731,8 @@ public interface AdminP1Mapper {
           AND p.deleted = 0
           AND (CAST(#{status} AS varchar) IS NULL OR p.status = #{status})
           AND (CAST(#{orderId} AS bigint) IS NULL OR p.order_id = #{orderId})
+          AND (CAST(#{startDate} AS date) IS NULL OR p.paid_at >= #{startDate})
+          AND (CAST(#{endDate} AS date) IS NULL OR p.paid_at < (CAST(#{endDate} AS date) + 1))
         ORDER BY p.created_at DESC, p.id DESC
         LIMIT #{pageSize} OFFSET #{offset}
         """)
@@ -701,6 +740,8 @@ public interface AdminP1Mapper {
         @Param("campusId") Long campusId,
         @Param("status") String status,
         @Param("orderId") Long orderId,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate,
         @Param("pageSize") long pageSize,
         @Param("offset") long offset
     );
@@ -714,12 +755,16 @@ public interface AdminP1Mapper {
           AND (CAST(#{status} AS varchar) IS NULL OR n.status = #{status})
           AND (CAST(#{bizType} AS varchar) IS NULL OR n.biz_type = #{bizType})
           AND (CAST(#{receiverStudentId} AS bigint) IS NULL OR n.receiver_student_id = #{receiverStudentId})
+          AND (CAST(#{startDate} AS date) IS NULL OR n.created_at >= #{startDate})
+          AND (CAST(#{endDate} AS date) IS NULL OR n.created_at < (CAST(#{endDate} AS date) + 1))
         """)
     long countNotifications(
         @Param("campusId") Long campusId,
         @Param("status") String status,
         @Param("bizType") String bizType,
-        @Param("receiverStudentId") Long receiverStudentId
+        @Param("receiverStudentId") Long receiverStudentId,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
     );
 
     @InterceptorIgnore(tenantLine = "true")
@@ -745,6 +790,8 @@ public interface AdminP1Mapper {
           AND (CAST(#{status} AS varchar) IS NULL OR n.status = #{status})
           AND (CAST(#{bizType} AS varchar) IS NULL OR n.biz_type = #{bizType})
           AND (CAST(#{receiverStudentId} AS bigint) IS NULL OR n.receiver_student_id = #{receiverStudentId})
+          AND (CAST(#{startDate} AS date) IS NULL OR n.created_at >= #{startDate})
+          AND (CAST(#{endDate} AS date) IS NULL OR n.created_at < (CAST(#{endDate} AS date) + 1))
         ORDER BY n.created_at DESC, n.id DESC
         LIMIT #{pageSize} OFFSET #{offset}
         """)
@@ -753,6 +800,8 @@ public interface AdminP1Mapper {
         @Param("status") String status,
         @Param("bizType") String bizType,
         @Param("receiverStudentId") Long receiverStudentId,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate,
         @Param("pageSize") long pageSize,
         @Param("offset") long offset
     );

@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { Plus, Search } from 'lucide-vue-next';
+import { Plus } from 'lucide-vue-next';
 import { onMounted, reactive, ref } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { campusApi } from '@/api/admin';
 import type { CampusForm, CampusRecord } from '@/types/admin';
 import { statusText, statusType } from '@/utils/status';
+import SearchFilterBar from '@/components/SearchFilterBar.vue';
 
 const loading = ref(false);
 const dialogVisible = ref(false);
@@ -93,6 +94,13 @@ const toggleStatus = async (row: CampusRecord) => {
   await loadData();
 };
 
+const resetFilters = () => {
+  query.keyword = '';
+  query.status = '';
+  query.pageNo = 1;
+  loadData();
+};
+
 onMounted(loadData);
 </script>
 
@@ -110,16 +118,15 @@ onMounted(loadData);
     </section>
 
     <section class="table-surface">
-      <div class="table-toolbar">
-        <el-input v-model="query.keyword" clearable placeholder="校区名称 / 编码" @keyup.enter="loadData">
-          <template #prefix><Search :size="16" /></template>
-        </el-input>
-        <el-select v-model="query.status" clearable placeholder="状态">
-          <el-option label="启用" value="ENABLED" />
-          <el-option label="停用" value="DISABLED" />
-        </el-select>
-        <el-button @click="loadData">查询</el-button>
-      </div>
+      <SearchFilterBar :loading="loading" show-reset @search="loadData" @reset="resetFilters">
+        <template #filters>
+          <el-input v-model="query.keyword" clearable placeholder="校区名称 / 编码" @keyup.enter="loadData" />
+          <el-select v-model="query.status" clearable placeholder="状态">
+            <el-option label="启用" value="ENABLED" />
+            <el-option label="停用" value="DISABLED" />
+          </el-select>
+        </template>
+      </SearchFilterBar>
 
       <el-table v-loading="loading" :data="records" stripe>
         <el-table-column prop="code" label="编码" min-width="130" />

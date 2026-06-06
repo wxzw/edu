@@ -105,7 +105,9 @@ public class AdminP1Service {
             StringUtil.blankToNull(query.getResourceType()),
             StringUtil.blankToNull(query.getStudyType()),
             StringUtil.blankToNull(query.getVisibility()),
-            StringUtil.blankToNull(query.getStatus())
+            StringUtil.blankToNull(query.getStatus()),
+            query.getStartDate(),
+            query.getEndDate()
         );
         List<AdminP1Responses.MaterialItem> records = mapper.selectMaterials(
                 campusId,
@@ -115,6 +117,8 @@ public class AdminP1Service {
                 StringUtil.blankToNull(query.getStudyType()),
                 StringUtil.blankToNull(query.getVisibility()),
                 StringUtil.blankToNull(query.getStatus()),
+                query.getStartDate(),
+                query.getEndDate(),
                 query.getPageSize(),
                 offset(query)
             )
@@ -194,11 +198,13 @@ public class AdminP1Service {
 
     public PageResponse<AdminP1Responses.ActivityItem> activities(AdminP1Requests.ActivityQuery query) {
         Long campusId = campusScopeService.requiredCampusId();
-        long total = mapper.countActivities(campusId, StringUtil.blankToNull(query.getKeyword()), StringUtil.blankToNull(query.getStatus()));
+        long total = mapper.countActivities(campusId, StringUtil.blankToNull(query.getKeyword()), StringUtil.blankToNull(query.getStatus()), query.getStartDate(), query.getEndDate());
         List<AdminP1Responses.ActivityItem> records = mapper.selectActivities(
                 campusId,
                 StringUtil.blankToNull(query.getKeyword()),
                 StringUtil.blankToNull(query.getStatus()),
+                query.getStartDate(),
+                query.getEndDate(),
                 query.getPageSize(),
                 offset(query)
             )
@@ -268,11 +274,13 @@ public class AdminP1Service {
 
     public PageResponse<AdminP1Responses.RegistrationItem> registrations(AdminP1Requests.RegistrationQuery query) {
         Long campusId = campusScopeService.requiredCampusId();
-        long total = mapper.countRegistrations(campusId, query.getActivityId(), StringUtil.blankToNull(query.getStatus()));
+        long total = mapper.countRegistrations(campusId, query.getActivityId(), StringUtil.blankToNull(query.getStatus()), query.getStartDate(), query.getEndDate());
         List<AdminP1Responses.RegistrationItem> records = mapper.selectRegistrations(
                 campusId,
                 query.getActivityId(),
                 StringUtil.blankToNull(query.getStatus()),
+                query.getStartDate(),
+                query.getEndDate(),
                 query.getPageSize(),
                 offset(query)
             )
@@ -288,13 +296,17 @@ public class AdminP1Service {
             campusId,
             StringUtil.blankToNull(query.getOrderType()),
             StringUtil.blankToNull(query.getPayStatus()),
-            query.getStudentId()
+            query.getStudentId(),
+            query.getStartDate(),
+            query.getEndDate()
         );
         List<AdminP1Responses.OrderItem> records = mapper.selectOrders(
                 campusId,
                 StringUtil.blankToNull(query.getOrderType()),
                 StringUtil.blankToNull(query.getPayStatus()),
                 query.getStudentId(),
+                query.getStartDate(),
+                query.getEndDate(),
                 query.getPageSize(),
                 offset(query)
             )
@@ -306,11 +318,13 @@ public class AdminP1Service {
 
     public PageResponse<AdminP1Responses.PaymentItem> payments(AdminP1Requests.PaymentQuery query) {
         Long campusId = campusScopeService.requiredCampusId();
-        long total = mapper.countPayments(campusId, StringUtil.blankToNull(query.getStatus()), query.getOrderId());
+        long total = mapper.countPayments(campusId, StringUtil.blankToNull(query.getStatus()), query.getOrderId(), query.getStartDate(), query.getEndDate());
         List<AdminP1Responses.PaymentItem> records = mapper.selectPayments(
                 campusId,
                 StringUtil.blankToNull(query.getStatus()),
                 query.getOrderId(),
+                query.getStartDate(),
+                query.getEndDate(),
                 query.getPageSize(),
                 offset(query)
             )
@@ -326,13 +340,17 @@ public class AdminP1Service {
             campusId,
             StringUtil.blankToNull(query.getStatus()),
             StringUtil.blankToNull(query.getBizType()),
-            query.getReceiverStudentId()
+            query.getReceiverStudentId(),
+            query.getStartDate(),
+            query.getEndDate()
         );
         List<AdminP1Responses.NotificationItem> records = mapper.selectNotifications(
                 campusId,
                 StringUtil.blankToNull(query.getStatus()),
                 StringUtil.blankToNull(query.getBizType()),
                 query.getReceiverStudentId(),
+                query.getStartDate(),
+                query.getEndDate(),
                 query.getPageSize(),
                 offset(query)
             )

@@ -84,7 +84,7 @@ services:
     volumes:
       - backend_logs:/app/logs
     ports:
-      - "8056:8055"
+      - "8055:8055"
     networks:
       - edu-network
 

@@ -45,6 +45,8 @@ public class AdminUserService {
                 .like(SysUser::getRealName, query.getKeyword())
                 .or()
                 .like(SysUser::getPhone, query.getKeyword()))
+            .ge(query.getStartDate() != null, SysUser::getLastLoginAt, query.getStartDate())
+            .le(query.getEndDate() != null, SysUser::getLastLoginAt, query.getEndDate())
             .orderByDesc(SysUser::getId);
         Page<SysUser> page = userMapper.selectPage(Page.of(query.getPageNo(), query.getPageSize()), wrapper);
         return PageResponse.of(page.getRecords().stream().map(this::toResponse).toList(),
