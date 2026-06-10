@@ -289,4 +289,46 @@ public final class TeacherResponses {
         private String changeType;
         private OffsetDateTime occurredAt;
     }
+
+    @Getter
+    @Setter
+    public static class FileUploadResult {
+        private Long fileId;
+        private String fileName;
+        private String contentType;
+        private Long fileSize;
+        private String objectKey;
+    }
+
+    @Getter
+    @Setter
+    public static class MaterialCategoryItem {
+        private Long id;
+        private Long parentId;
+        private String name;
+        private Integer sortOrder;
+    }
+
+    @Getter
+    @Setter
+    public static class MaterialItem {
+        private Long id;
+        private String title;
+        private String description;
+        private Long categoryId;
+        private String categoryName;
+        private String resourceType;
+        private String visibility;
+        private String studyType;
+        private Boolean allowDownload;
+        private String auditStatus;
+        private String status;
+        private Long fileId;
+        private String fileName;
+        private Long fileSize;
+        private String contentType;
+        private String coverUrl;
+        private OffsetDateTime createdAt;
+        private String rejectedReason;
+    }
 }

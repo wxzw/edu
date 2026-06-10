@@ -3,6 +3,8 @@ package com.community.edu.teacher;
 import com.community.edu.common.exception.BizException;
 import com.community.edu.common.exception.ErrorCode;
 import com.community.edu.mapper.TeacherMiniappMapper;
+import com.community.edu.service.LocalFileStorageService;
+import com.community.edu.service.LocalFileStorageService.StoredFile;
 import com.community.edu.teacher.TeacherScopeService.TeacherContext;
 import com.community.edu.teacher.dto.TeacherMiniappRows;
 import com.community.edu.teacher.dto.TeacherRequests;
@@ -17,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 老师端业务服务。处理老师首页、班级、作业等业务逻辑。
@@ -39,6 +42,7 @@ public class TeacherApiService {
 
     private final TeacherScopeService scopeService;
     private final TeacherMiniappMapper mapper;
+    private final LocalFileStorageService fileStorageService;
 
     public TeacherResponses.Dashboard dashboard() {
         TeacherContext context = scopeService.resolve();
@@ -335,6 +339,147 @@ public class TeacherApiService {
         return mapper.selectTeacherLessonRecords(context.campusId(), context.teacherId(), size).stream()
             .map(this::toLessonHourRecordItem)
             .toList();
+    }
+
+    public TeacherResponses.FileUploadResult uploadFile(MultipartFile file, String bizType) {
+        TeacherContext context = scopeService.resolve();
+        StoredFile storedFile = fileStorageService.store(file, context.campusId());
+        Long fileId = mapper.insertLocalFile(
+            context.campusId(),
+            storedFile.objectKey(),
+            "/api/admin/files/local/" + storedFile.objectKey(),
+            storedFile.fileName(),
+            storedFile.contentType(),
+            storedFile.fileSize(),
+            context.currentUser().getUserId(),
+            StringUtils.hasText(bizType) ? bizType : "MATERIAL",
+            context.currentUser().getUserId()
+        );
+        TeacherResponses.FileUploadResult result = new TeacherResponses.FileUploadResult();
+        result.setFileId(fileId);
+        result.setFileName(storedFile.fileName());
+        result.setContentType(storedFile.contentType());
+        result.setFileSize(storedFile.fileSize());
+        result.setObjectKey(storedFile.objectKey());
+        return result;
+    }
+
+    public List<TeacherResponses.MaterialCategoryItem> materialCategories() {
+        TeacherContext context = scopeService.resolve();
+        return mapper.selectMaterialCategories(context.campusId()).stream()
+            .map(this::toMaterialCategoryItem)
+            .toList();
+    }
+
+    public List<TeacherResponses.MaterialItem> materials(String auditStatus) {
+        TeacherContext context = scopeService.resolve();
+        return mapper.selectTeacherMaterials(
+                context.campusId(),
+                context.teacherId(),
+                StringUtils.hasText(auditStatus) ? auditStatus : null
+            )
+            .stream()
+            .map(this::toMaterialItem)
+            .toList();
+    }
+
+    public TeacherResponses.MaterialItem materialDetail(Long materialId) {
+        TeacherContext context = scopeService.resolve();
+        TeacherMiniappRows.MaterialListRow row = mapper.selectTeacherMaterialById(
+            context.campusId(), context.teacherId(), materialId
+        );
+        if (row == null) {
+            throw new BizException(ErrorCode.NOT_FOUND, "资料不存在或无权查看");
+        }
+        return toMaterialItem(row);
+    }
+
+    @Transactional
+    public TeacherResponses.MaterialItem createMaterial(TeacherRequests.CreateMaterialRequest request) {
+        TeacherContext context = scopeService.resolve();
+        validateMaterialRequest(request);
+        Long fileId = request.getFileId();
+        TeacherMiniappRows.FileRow fileRow = mapper.selectFile(context.campusId(), fileId);
+        if (fileRow == null) {
+            throw new BizException(ErrorCode.NOT_FOUND, "文件不存在");
+        }
+        Long id = mapper.insertMaterial(
+            context.campusId(),
+            request.getCategoryId(),
+            request.getTitle(),
+            request.getDescription(),
+            request.getResourceType(),
+            request.getCoverFileId(),
+            fileId,
+            context.teacherId(),
+            defaultString(request.getVisibility(), "CAMPUS"),
+            defaultString(request.getStudyType(), "OPTIONAL"),
+            Boolean.TRUE.equals(request.getAllowDownload()),
+            context.currentUser().getUserId()
+        );
+        if ("CLASS".equals(request.getVisibility()) && request.getClassIds() != null) {
+            for (Long classId : request.getClassIds().stream().distinct().toList()) {
+                mapper.insertMaterialClass(context.campusId(), id, classId, context.currentUser().getUserId());
+            }
+        }
+        return materialDetail(id);
+    }
+
+    @Transactional
+    public void deleteMaterial(Long materialId) {
+        TeacherContext context = scopeService.resolve();
+        int rows = mapper.deleteTeacherMaterial(
+            context.campusId(), context.teacherId(), materialId, context.currentUser().getUserId()
+        );
+        if (rows == 0) {
+            throw new BizException(ErrorCode.NOT_FOUND, "资料不存在或不可删除");
+        }
+    }
+
+    private void validateMaterialRequest(TeacherRequests.CreateMaterialRequest request) {
+        if (!StringUtils.hasText(request.getTitle())) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "资料标题不能为空");
+        }
+        String visibility = defaultString(request.getVisibility(), "CAMPUS");
+        if ("CLASS".equals(visibility) && (request.getClassIds() == null || request.getClassIds().isEmpty())) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "班级可见资料必须选择班级");
+        }
+    }
+
+    private String defaultString(String value, String defaultValue) {
+        return StringUtils.hasText(value) ? value : defaultValue;
+    }
+
+    private TeacherResponses.MaterialCategoryItem toMaterialCategoryItem(TeacherMiniappRows.MaterialCategoryRow row) {
+        TeacherResponses.MaterialCategoryItem response = new TeacherResponses.MaterialCategoryItem();
+        response.setId(row.getId());
+        response.setParentId(row.getParentId());
+        response.setName(row.getName());
+        response.setSortOrder(row.getSortOrder());
+        return response;
+    }
+
+    private TeacherResponses.MaterialItem toMaterialItem(TeacherMiniappRows.MaterialListRow row) {
+        TeacherResponses.MaterialItem response = new TeacherResponses.MaterialItem();
+        response.setId(row.getId());
+        response.setTitle(row.getTitle());
+        response.setDescription(row.getDescription());
+        response.setCategoryId(row.getCategoryId());
+        response.setCategoryName(row.getCategoryName());
+        response.setResourceType(row.getResourceType());
+        response.setVisibility(row.getVisibility());
+        response.setStudyType(row.getStudyType());
+        response.setAllowDownload(row.getAllowDownload());
+        response.setAuditStatus(row.getAuditStatus());
+        response.setStatus(row.getStatus());
+        response.setFileId(row.getFileId());
+        response.setFileName(row.getFileName());
+        response.setFileSize(row.getFileSize());
+        response.setContentType(row.getContentType());
+        response.setCoverUrl(row.getCoverUrl());
+        response.setCreatedAt(row.getCreatedAt());
+        response.setRejectedReason(row.getRejectedReason());
+        return response;
     }
 
     private TeacherResponses.TeacherProfile profile(Long campusId, Long teacherId) {

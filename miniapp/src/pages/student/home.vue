@@ -72,6 +72,10 @@ function goActivities() {
   uni.navigateTo({ url: '/pages/student/activity/list' });
 }
 
+function goMaterials() {
+  uni.navigateTo({ url: '/pages/student/material/list' });
+}
+
 function goNotifications() {
   uni.navigateTo({ url: '/pages/mine/notifications' });
 }
@@ -207,6 +211,7 @@ function groupStatusLabel(status?: string) {
       <button class="quick yellow" @tap="goCourse">课表</button>
       <button class="quick blue" @tap="goActivities">活动</button>
       <button class="quick green" @tap="goGroupCreate">拼班</button>
+      <button class="quick purple" @tap="goMaterials">资料</button>
     </view>
 
     <view v-if="loading" class="loading">加载中...</view>
@@ -491,7 +496,7 @@ function groupStatusLabel(status?: string) {
 .quick-grid {
   margin-top: 28rpx;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16rpx;
 }
 
@@ -519,6 +524,10 @@ function groupStatusLabel(status?: string) {
 
 .quick.green {
   background: #2d6a4f;
+}
+
+.quick.purple {
+  background: #6b4c7a;
 }
 
 .empty,

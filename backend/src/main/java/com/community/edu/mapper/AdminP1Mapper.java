@@ -123,6 +123,7 @@ public interface AdminP1Mapper {
           AND (CAST(#{studyType} AS varchar) IS NULL OR m.study_type = #{studyType})
           AND (CAST(#{visibility} AS varchar) IS NULL OR m.visibility = #{visibility})
           AND (CAST(#{status} AS varchar) IS NULL OR m.status = #{status})
+          AND (CAST(#{auditStatus} AS varchar) IS NULL OR m.audit_status = #{auditStatus})
           AND (
               CAST(#{keyword} AS varchar) IS NULL
               OR m.title ILIKE CONCAT('%', CAST(#{keyword} AS varchar), '%')
@@ -139,6 +140,7 @@ public interface AdminP1Mapper {
         @Param("studyType") String studyType,
         @Param("visibility") String visibility,
         @Param("status") String status,
+        @Param("auditStatus") String auditStatus,
         @Param("startDate") LocalDate startDate,
         @Param("endDate") LocalDate endDate
     );
@@ -155,6 +157,8 @@ public interface AdminP1Mapper {
                cover.url AS cover_url,
                m.file_id,
                rf.file_name,
+               rf.content_type,
+               rf.file_size,
                m.owner_teacher_id,
                t.name AS owner_teacher_name,
                m.visibility,
@@ -195,6 +199,7 @@ public interface AdminP1Mapper {
           AND (CAST(#{studyType} AS varchar) IS NULL OR m.study_type = #{studyType})
           AND (CAST(#{visibility} AS varchar) IS NULL OR m.visibility = #{visibility})
           AND (CAST(#{status} AS varchar) IS NULL OR m.status = #{status})
+          AND (CAST(#{auditStatus} AS varchar) IS NULL OR m.audit_status = #{auditStatus})
           AND (
               CAST(#{keyword} AS varchar) IS NULL
               OR m.title ILIKE CONCAT('%', CAST(#{keyword} AS varchar), '%')
@@ -213,6 +218,7 @@ public interface AdminP1Mapper {
         @Param("studyType") String studyType,
         @Param("visibility") String visibility,
         @Param("status") String status,
+        @Param("auditStatus") String auditStatus,
         @Param("startDate") LocalDate startDate,
         @Param("endDate") LocalDate endDate,
         @Param("pageSize") long pageSize,
@@ -231,6 +237,8 @@ public interface AdminP1Mapper {
                cover.url AS cover_url,
                m.file_id,
                rf.file_name,
+               rf.content_type,
+               rf.file_size,
                m.owner_teacher_id,
                t.name AS owner_teacher_name,
                m.visibility,
@@ -870,6 +878,29 @@ public interface AdminP1Mapper {
         @Param("bizId") Long bizId,
         @Param("title") String title,
         @Param("content") String content,
+        @Param("operatorId") Long operatorId
+    );
+
+    @InterceptorIgnore(tenantLine = "true")
+    @Update("""
+        UPDATE res_material
+        SET audit_status = #{auditStatus},
+            rejected_reason = #{rejectedReason},
+            audit_by = #{operatorId},
+            audit_time = NOW(),
+            status = CASE WHEN #{auditStatus} = 'APPROVED' THEN 'PUBLISHED' ELSE status END,
+            updated_at = NOW(),
+            updated_by = #{operatorId}
+        WHERE campus_id = #{campusId}
+          AND id = #{id}
+          AND deleted = 0
+          AND audit_status = 'PENDING'
+        """)
+    int auditMaterial(
+        @Param("campusId") Long campusId,
+        @Param("id") Long id,
+        @Param("auditStatus") String auditStatus,
+        @Param("rejectedReason") String rejectedReason,
         @Param("operatorId") Long operatorId
     );
 }

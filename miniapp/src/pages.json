@@ -121,6 +121,12 @@
       }
     },
     {
+      "path": "pages/student/material/list",
+      "style": {
+        "navigationBarTitleText": "教学资料"
+      }
+    },
+    {
       "path": "pages/student/material/detail",
       "style": {
         "navigationBarTitleText": "资料详情"

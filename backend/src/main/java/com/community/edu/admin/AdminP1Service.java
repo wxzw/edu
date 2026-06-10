@@ -16,6 +16,8 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -106,6 +108,7 @@ public class AdminP1Service {
             StringUtil.blankToNull(query.getStudyType()),
             StringUtil.blankToNull(query.getVisibility()),
             StringUtil.blankToNull(query.getStatus()),
+            StringUtil.blankToNull(query.getAuditStatus()),
             query.getStartDate(),
             query.getEndDate()
         );
@@ -117,6 +120,7 @@ public class AdminP1Service {
                 StringUtil.blankToNull(query.getStudyType()),
                 StringUtil.blankToNull(query.getVisibility()),
                 StringUtil.blankToNull(query.getStatus()),
+                StringUtil.blankToNull(query.getAuditStatus()),
                 query.getStartDate(),
                 query.getEndDate(),
                 query.getPageSize(),
@@ -135,6 +139,16 @@ public class AdminP1Service {
             throw new BizException(ErrorCode.NOT_FOUND, "资料不存在");
         }
         return toMaterial(row);
+    }
+
+    public ResponseEntity<Resource> materialFile(Long id, boolean download) {
+        Long campusId = campusScopeService.requiredCampusId();
+        AdminP1Rows.MaterialRow material = mapper.selectMaterial(campusId, id);
+        if (material == null) {
+            throw new BizException(ErrorCode.NOT_FOUND, "Material not found");
+        }
+        AdminP1Rows.FileRow file = requiredFile(campusId, material.getFileId());
+        return fileStorageService.response(file, download);
     }
 
     @Transactional
@@ -361,6 +375,27 @@ public class AdminP1Service {
     }
 
     @Transactional
+    public void auditMaterial(Long id, AdminP1Requests.AuditMaterialRequest request) {
+        Long campusId = campusScopeService.requiredCampusId();
+        Long operatorId = CurrentUserHolder.getRequired().getUserId();
+        String auditStatus = request.getAuditStatus();
+        if (!"APPROVED".equals(auditStatus) && !"REJECTED".equals(auditStatus)) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "审核状态只能是 APPROVED 或 REJECTED");
+        }
+        if ("REJECTED".equals(auditStatus) && !StringUtils.hasText(request.getRejectedReason())) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "驳回时必须填写原因");
+        }
+        int rows = mapper.auditMaterial(
+            campusId, id, auditStatus,
+            "REJECTED".equals(auditStatus) ? request.getRejectedReason() : null,
+            operatorId
+        );
+        if (rows == 0) {
+            throw new BizException(ErrorCode.NOT_FOUND, "资料不存在或已审核");
+        }
+    }
+
+    @Transactional
     public AdminP1Responses.NotificationPublishResult publishNotification(AdminP1Requests.NotificationRequest request) {
         Long campusId = campusScopeService.requiredCampusId();
         Long operatorId = CurrentUserHolder.getRequired().getUserId();
@@ -482,6 +517,8 @@ public class AdminP1Service {
         response.setCoverUrl(row.getCoverUrl());
         response.setFileId(row.getFileId());
         response.setFileName(row.getFileName());
+        response.setContentType(row.getContentType());
+        response.setFileSize(row.getFileSize());
         response.setOwnerTeacherId(row.getOwnerTeacherId());
         response.setOwnerTeacherName(row.getOwnerTeacherName());
         response.setVisibility(row.getVisibility());

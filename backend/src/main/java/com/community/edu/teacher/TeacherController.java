@@ -8,13 +8,16 @@ import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 老师端业务接口。提供老师首页、班级、作业、课时记录等功能。
@@ -118,5 +121,43 @@ public class TeacherController {
         @RequestParam(required = false) Integer limit
     ) {
         return ApiResponse.success(teacherApiService.lessonHourRecords(limit));
+    }
+
+    @PostMapping("/files")
+    public ApiResponse<TeacherResponses.FileUploadResult> uploadFile(
+        @RequestPart("file") MultipartFile file,
+        @RequestParam(required = false) String bizType
+    ) {
+        return ApiResponse.success(teacherApiService.uploadFile(file, bizType));
+    }
+
+    @GetMapping("/material-categories")
+    public ApiResponse<List<TeacherResponses.MaterialCategoryItem>> materialCategories() {
+        return ApiResponse.success(teacherApiService.materialCategories());
+    }
+
+    @GetMapping("/materials")
+    public ApiResponse<List<TeacherResponses.MaterialItem>> materials(
+        @RequestParam(required = false) String auditStatus
+    ) {
+        return ApiResponse.success(teacherApiService.materials(auditStatus));
+    }
+
+    @GetMapping("/materials/{id}")
+    public ApiResponse<TeacherResponses.MaterialItem> materialDetail(@PathVariable Long id) {
+        return ApiResponse.success(teacherApiService.materialDetail(id));
+    }
+
+    @PostMapping("/materials")
+    public ApiResponse<TeacherResponses.MaterialItem> createMaterial(
+        @Valid @RequestBody TeacherRequests.CreateMaterialRequest request
+    ) {
+        return ApiResponse.success(teacherApiService.createMaterial(request));
+    }
+
+    @DeleteMapping("/materials/{id}")
+    public ApiResponse<Void> deleteMaterial(@PathVariable Long id) {
+        teacherApiService.deleteMaterial(id);
+        return ApiResponse.success();
     }
 }

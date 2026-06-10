@@ -1,4 +1,5 @@
 import { http } from './http';
+import type { AxiosResponse } from 'axios';
 import type { PageResponse, StatusUpdateRequest } from '@/types/api';
 import type {
   AdminPageQuery,
@@ -15,6 +16,7 @@ import type {
   CourseRecord,
   MaterialCategoryForm,
   MaterialCategoryRecord,
+  MaterialAuditRequest,
   MaterialForm,
   MaterialRecord,
   NotificationForm,
@@ -128,6 +130,9 @@ export const materialApi = {
   create: (payload: MaterialForm) => create<MaterialRecord, MaterialForm>('/api/admin/materials', payload),
   update: (id: number, payload: MaterialForm) => update<MaterialRecord, MaterialForm>('/api/admin/materials', id, payload),
   status: (id: number, payload: StatusUpdateRequest) => status('/api/admin/materials', id, payload),
+  audit: (id: number, payload: MaterialAuditRequest) => http.patch<void, void>(`/api/admin/materials/${id}/audit`, payload),
+  previewBlob: (id: number) => http.get<Blob, AxiosResponse<Blob>>(`/api/admin/materials/${id}/preview`, { responseType: 'blob' }),
+  downloadBlob: (id: number) => http.get<Blob, AxiosResponse<Blob>>(`/api/admin/materials/${id}/download`, { responseType: 'blob' }),
 };
 
 export const activityApi = {

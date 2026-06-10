@@ -10,6 +10,8 @@ import com.community.edu.common.security.RequirePermission;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -83,6 +85,18 @@ public class AdminP1Controller {
         return ApiResponse.success(adminP1Service.material(id));
     }
 
+    @GetMapping("/materials/{id}/preview")
+    @RequirePermission("resource:material")
+    public ResponseEntity<Resource> previewMaterial(@PathVariable Long id) {
+        return adminP1Service.materialFile(id, false);
+    }
+
+    @GetMapping("/materials/{id}/download")
+    @RequirePermission("resource:material")
+    public ResponseEntity<Resource> downloadMaterial(@PathVariable Long id) {
+        return adminP1Service.materialFile(id, true);
+    }
+
     @PostMapping("/materials")
     @RequirePermission("resource:material")
     @OperationLog(module = "资料库", operation = "发布资料", bizType = "MATERIAL")
@@ -110,6 +124,17 @@ public class AdminP1Controller {
         @Valid @RequestBody StatusUpdateRequest request
     ) {
         adminP1Service.updateMaterialStatus(id, request.getStatus());
+        return ApiResponse.success();
+    }
+
+    @PatchMapping("/materials/{id}/audit")
+    @RequirePermission("resource:material")
+    @OperationLog(module = "资料库", operation = "审核资料", bizType = "MATERIAL")
+    public ApiResponse<Void> auditMaterial(
+        @PathVariable Long id,
+        @Valid @RequestBody AdminP1Requests.AuditMaterialRequest request
+    ) {
+        adminP1Service.auditMaterial(id, request);
         return ApiResponse.success();
     }
 
