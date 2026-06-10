@@ -277,4 +277,36 @@ public final class TeacherMiniappRows {
         private Integer submittedCount;
         private Integer commentedCount;
     }
+
+    @Getter
+    @Setter
+    public static class MaterialCategoryRow {
+        private Long id;
+        private Long parentId;
+        private String name;
+        private Integer sortOrder;
+    }
+
+    @Getter
+    @Setter
+    public static class MaterialListRow {
+        private Long id;
+        private String title;
+        private String description;
+        private Long categoryId;
+        private String categoryName;
+        private String resourceType;
+        private String visibility;
+        private String studyType;
+        private Boolean allowDownload;
+        private String auditStatus;
+        private String status;
+        private Long fileId;
+        private String fileName;
+        private Long fileSize;
+        private String contentType;
+        private String coverUrl;
+        private OffsetDateTime createdAt;
+        private String rejectedReason;
+    }
 }

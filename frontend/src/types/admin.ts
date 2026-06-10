@@ -279,6 +279,8 @@ export interface MaterialRecord {
   coverUrl?: string;
   fileId: number;
   fileName?: string;
+  contentType?: string;
+  fileSize?: number;
   ownerTeacherId?: number;
   ownerTeacherName?: string;
   visibility: string;
@@ -304,6 +306,11 @@ export interface MaterialForm {
   allowDownload: boolean;
   status: string;
   classIds: number[];
+}
+
+export interface MaterialAuditRequest {
+  auditStatus: 'APPROVED' | 'REJECTED';
+  rejectedReason?: string;
 }
 
 export interface ActivityRecord {

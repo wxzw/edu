@@ -62,6 +62,8 @@ public class AdminP1Rows {
         private String coverUrl;
         private Long fileId;
         private String fileName;
+        private String contentType;
+        private Long fileSize;
         private Long ownerTeacherId;
         private String ownerTeacherName;
         private String visibility;

@@ -2,6 +2,7 @@ package com.community.edu.service;
 
 import com.community.edu.common.exception.BizException;
 import com.community.edu.common.exception.ErrorCode;
+import com.community.edu.admin.dto.AdminP1Rows;
 import com.community.edu.student.dto.StudentP1Rows;
 import java.io.IOException;
 import java.net.URI;
@@ -68,28 +69,46 @@ public class LocalFileStorageService {
         if (row == null) {
             throw new BizException(ErrorCode.NOT_FOUND, "文件不存在");
         }
-        if (!"LOCAL".equalsIgnoreCase(row.getStorageType())) {
-            if (StringUtils.hasText(row.getUrl())) {
-                return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(row.getUrl())).body(null);
+        return response(row.getStorageType(), row.getObjectKey(), row.getUrl(), row.getFileName(), row.getContentType(), attachment);
+    }
+
+    public ResponseEntity<Resource> response(AdminP1Rows.FileRow row, boolean attachment) {
+        if (row == null) {
+            throw new BizException(ErrorCode.NOT_FOUND, "文件不存在");
+        }
+        return response(row.getStorageType(), row.getObjectKey(), row.getUrl(), row.getFileName(), row.getContentType(), attachment);
+    }
+
+    private ResponseEntity<Resource> response(
+        String storageType,
+        String objectKey,
+        String url,
+        String fileName,
+        String contentType,
+        boolean attachment
+    ) {
+        if (!"LOCAL".equalsIgnoreCase(storageType)) {
+            if (StringUtils.hasText(url)) {
+                return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(url)).body(null);
             }
             throw new BizException(ErrorCode.NOT_FOUND, "文件地址不存在");
         }
-        Path filePath = rootPath.resolve(row.getObjectKey()).normalize();
+        Path filePath = rootPath.resolve(objectKey).normalize();
         if (!filePath.startsWith(rootPath) || !Files.exists(filePath)) {
             throw new BizException(ErrorCode.NOT_FOUND, "本地文件不存在");
         }
         FileSystemResource resource = new FileSystemResource(filePath);
         MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
-        if (StringUtils.hasText(row.getContentType())) {
+        if (StringUtils.hasText(contentType)) {
             try {
-                mediaType = MediaType.parseMediaType(row.getContentType());
+                mediaType = MediaType.parseMediaType(contentType);
             } catch (IllegalArgumentException ignored) {
                 mediaType = MediaType.APPLICATION_OCTET_STREAM;
             }
         }
         ContentDisposition disposition = attachment
-            ? ContentDisposition.attachment().filename(row.getFileName()).build()
-            : ContentDisposition.inline().filename(row.getFileName()).build();
+            ? ContentDisposition.attachment().filename(fileName).build()
+            : ContentDisposition.inline().filename(fileName).build();
         return ResponseEntity.ok()
             .contentType(mediaType)
             .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())

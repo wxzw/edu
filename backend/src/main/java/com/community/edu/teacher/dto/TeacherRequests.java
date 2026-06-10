@@ -76,4 +76,23 @@ public final class TeacherRequests {
         private Long scheduleId;
         private List<Long> studentIds;
     }
+
+    @Getter
+    @Setter
+    public static class CreateMaterialRequest {
+        @NotBlank(message = "资料标题不能为空")
+        private String title;
+        private String description;
+        @NotNull(message = "请选择分类")
+        private Long categoryId;
+        @NotBlank(message = "请选择资料类型")
+        private String resourceType;
+        private String visibility;
+        private String studyType;
+        private Boolean allowDownload;
+        @NotNull(message = "请选择资料文件")
+        private Long fileId;
+        private Long coverFileId;
+        private List<Long> classIds;
+    }
 }

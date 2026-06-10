@@ -344,6 +344,48 @@ export interface MaterialSummary {
   updatedAt?: string;
 }
 
+export interface TeacherFileResult {
+  fileId: number;
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  objectKey: string;
+}
+
+export interface TeacherMaterialItem {
+  id: number;
+  title: string;
+  description?: string;
+  categoryId: number;
+  categoryName?: string;
+  resourceType: string;
+  visibility: string;
+  studyType: string;
+  allowDownload: boolean;
+  auditStatus: string;
+  status: string;
+  fileId: number;
+  fileName?: string;
+  fileSize?: number;
+  contentType?: string;
+  coverUrl?: string;
+  createdAt?: string;
+  rejectedReason?: string;
+}
+
+export interface CreateMaterialRequest {
+  title: string;
+  description?: string;
+  categoryId: number;
+  resourceType: string;
+  visibility: string;
+  studyType: string;
+  allowDownload: boolean;
+  fileId: number;
+  coverFileId?: number;
+  classIds?: number[];
+}
+
 export interface ActivitySummary {
   id: number;
   title: string;

@@ -30,6 +30,7 @@ public class AdminP1Requests {
         private String studyType;
         private String visibility;
         private String status;
+        private String auditStatus;
     }
 
     @Getter
@@ -120,5 +121,13 @@ public class AdminP1Requests {
         private String content;
         private String bizType;
         private Long bizId;
+    }
+
+    @Getter
+    @Setter
+    public static class AuditMaterialRequest {
+        @NotBlank(message = "审核状态不能为空")
+        private String auditStatus;
+        private String rejectedReason;
     }
 }

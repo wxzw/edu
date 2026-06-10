@@ -1140,4 +1140,215 @@ public interface TeacherMiniappMapper {
         @Param("lessonHours") BigDecimal lessonHours,
         @Param("operatorId") Long operatorId
     );
+
+    @InterceptorIgnore(tenantLine = "true")
+    @Select("""
+        INSERT INTO res_file (
+            campus_id, storage_type, bucket_name, object_key, url, file_name, content_type, file_size,
+            uploader_id, biz_type, status, created_by, updated_by
+        ) VALUES (
+            #{campusId}, 'LOCAL', NULL, #{objectKey}, #{url}, #{fileName}, #{contentType}, #{fileSize},
+            #{uploaderId}, #{bizType}, 'AVAILABLE', #{operatorId}, #{operatorId}
+        )
+        RETURNING id
+        """)
+    Long insertLocalFile(
+        @Param("campusId") Long campusId,
+        @Param("objectKey") String objectKey,
+        @Param("url") String url,
+        @Param("fileName") String fileName,
+        @Param("contentType") String contentType,
+        @Param("fileSize") Long fileSize,
+        @Param("uploaderId") Long uploaderId,
+        @Param("bizType") String bizType,
+        @Param("operatorId") Long operatorId
+    );
+
+    @InterceptorIgnore(tenantLine = "true")
+    @Select("""
+        SELECT id,
+               storage_type,
+               object_key,
+               url,
+               file_name,
+               content_type,
+               file_size,
+               biz_type,
+               status,
+               created_at
+        FROM res_file
+        WHERE campus_id = #{campusId}
+          AND id = #{fileId}
+          AND deleted = 0
+        LIMIT 1
+        """)
+    TeacherMiniappRows.FileRow selectFile(@Param("campusId") Long campusId, @Param("fileId") Long fileId);
+
+    @InterceptorIgnore(tenantLine = "true")
+    @Select("""
+        SELECT id,
+               parent_id,
+               name,
+               sort_order
+        FROM res_category
+        WHERE campus_id = #{campusId}
+          AND deleted = 0
+          AND category_type = 'MATERIAL'
+          AND status = 'ENABLED'
+        ORDER BY sort_order, id
+        """)
+    List<TeacherMiniappRows.MaterialCategoryRow> selectMaterialCategories(@Param("campusId") Long campusId);
+
+    @InterceptorIgnore(tenantLine = "true")
+    @Select("""
+        SELECT m.id,
+               m.title,
+               m.description,
+               m.category_id,
+               c.name AS category_name,
+               m.resource_type,
+               m.visibility,
+               m.study_type,
+               m.allow_download,
+               m.audit_status,
+               m.status,
+               m.file_id,
+               rf.file_name,
+               rf.file_size,
+               rf.content_type,
+               cover.url AS cover_url,
+               m.created_at,
+               m.rejected_reason
+        FROM res_material m
+        JOIN res_category c
+          ON c.campus_id = m.campus_id
+         AND c.id = m.category_id
+         AND c.deleted = 0
+        JOIN res_file rf
+          ON rf.campus_id = m.campus_id
+         AND rf.id = m.file_id
+         AND rf.deleted = 0
+        LEFT JOIN res_file cover
+          ON cover.campus_id = m.campus_id
+         AND cover.id = m.cover_file_id
+         AND cover.deleted = 0
+        WHERE m.campus_id = #{campusId}
+          AND m.owner_teacher_id = #{teacherId}
+          AND m.deleted = 0
+          AND (CAST(#{auditStatus} AS varchar) IS NULL OR m.audit_status = #{auditStatus})
+        ORDER BY m.created_at DESC, m.id DESC
+        """)
+    List<TeacherMiniappRows.MaterialListRow> selectTeacherMaterials(
+        @Param("campusId") Long campusId,
+        @Param("teacherId") Long teacherId,
+        @Param("auditStatus") String auditStatus
+    );
+
+    @InterceptorIgnore(tenantLine = "true")
+    @Select("""
+        SELECT m.id,
+               m.title,
+               m.description,
+               m.category_id,
+               c.name AS category_name,
+               m.resource_type,
+               m.visibility,
+               m.study_type,
+               m.allow_download,
+               m.audit_status,
+               m.status,
+               m.file_id,
+               rf.file_name,
+               rf.file_size,
+               rf.content_type,
+               cover.url AS cover_url,
+               m.created_at,
+               m.rejected_reason
+        FROM res_material m
+        JOIN res_category c
+          ON c.campus_id = m.campus_id
+         AND c.id = m.category_id
+         AND c.deleted = 0
+        JOIN res_file rf
+          ON rf.campus_id = m.campus_id
+         AND rf.id = m.file_id
+         AND rf.deleted = 0
+        LEFT JOIN res_file cover
+          ON cover.campus_id = m.campus_id
+         AND cover.id = m.cover_file_id
+         AND cover.deleted = 0
+        WHERE m.campus_id = #{campusId}
+          AND m.id = #{materialId}
+          AND m.owner_teacher_id = #{teacherId}
+          AND m.deleted = 0
+        LIMIT 1
+        """)
+    TeacherMiniappRows.MaterialListRow selectTeacherMaterialById(
+        @Param("campusId") Long campusId,
+        @Param("teacherId") Long teacherId,
+        @Param("materialId") Long materialId
+    );
+
+    @InterceptorIgnore(tenantLine = "true")
+    @Select("""
+        INSERT INTO res_material (
+            campus_id, category_id, title, description, resource_type, cover_file_id, file_id,
+            owner_teacher_id, visibility, study_type, allow_download, audit_status, status,
+            created_by, updated_by
+        ) VALUES (
+            #{campusId}, #{categoryId}, #{title}, #{description}, #{resourceType}, #{coverFileId}, #{fileId},
+            #{ownerTeacherId}, #{visibility}, #{studyType}, #{allowDownload}, 'PENDING', 'DRAFT',
+            #{operatorId}, #{operatorId}
+        )
+        RETURNING id
+        """)
+    Long insertMaterial(
+        @Param("campusId") Long campusId,
+        @Param("categoryId") Long categoryId,
+        @Param("title") String title,
+        @Param("description") String description,
+        @Param("resourceType") String resourceType,
+        @Param("coverFileId") Long coverFileId,
+        @Param("fileId") Long fileId,
+        @Param("ownerTeacherId") Long ownerTeacherId,
+        @Param("visibility") String visibility,
+        @Param("studyType") String studyType,
+        @Param("allowDownload") Boolean allowDownload,
+        @Param("operatorId") Long operatorId
+    );
+
+    @InterceptorIgnore(tenantLine = "true")
+    @Select("""
+        INSERT INTO res_material_class (
+            campus_id, material_id, class_id, created_by, updated_by
+        ) VALUES (
+            #{campusId}, #{materialId}, #{classId}, #{operatorId}, #{operatorId}
+        )
+        RETURNING id
+        """)
+    Long insertMaterialClass(
+        @Param("campusId") Long campusId,
+        @Param("materialId") Long materialId,
+        @Param("classId") Long classId,
+        @Param("operatorId") Long operatorId
+    );
+
+    @InterceptorIgnore(tenantLine = "true")
+    @Update("""
+        UPDATE res_material
+        SET deleted = 1,
+            updated_at = NOW(),
+            updated_by = #{operatorId}
+        WHERE campus_id = #{campusId}
+          AND id = #{materialId}
+          AND owner_teacher_id = #{teacherId}
+          AND deleted = 0
+          AND audit_status IN ('PENDING', 'REJECTED')
+        """)
+    int deleteTeacherMaterial(
+        @Param("campusId") Long campusId,
+        @Param("teacherId") Long teacherId,
+        @Param("materialId") Long materialId,
+        @Param("operatorId") Long operatorId
+    );
 }

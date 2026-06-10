@@ -22,6 +22,9 @@ http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
 http.interceptors.response.use(
   (response) => {
+    if (response.config.responseType === 'blob') {
+      return response;
+    }
     const payload = response.data as ApiResponse<unknown>;
     if (payload && payload.code && payload.code !== 'SUCCESS') {
       ElMessage.error(payload.message || '请求失败');

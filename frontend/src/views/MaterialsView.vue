@@ -29,7 +29,15 @@ const classes = ref<ClassRecord[]>([]);
 const teachers = ref<TeacherRecord[]>([]);
 const total = ref(0);
 
-const query = reactive({ pageNo: 1, pageSize: 10, keyword: '', categoryId: undefined as number | undefined, status: '', dateRange: [] as string[] });
+const query = reactive({
+  pageNo: 1,
+  pageSize: 10,
+  keyword: '',
+  categoryId: undefined as number | undefined,
+  status: '',
+  auditStatus: '',
+  dateRange: [] as string[],
+});
 const form = reactive<MaterialForm>({
   title: '',
   description: '',
@@ -138,6 +146,91 @@ const toggleStatus = async (row: MaterialRecord) => {
   await loadData();
 };
 
+const dispositionFileName = (disposition?: string) => {
+  if (!disposition) return '';
+  const encodedMatch = /filename\*=UTF-8''([^;]+)/i.exec(disposition);
+  if (encodedMatch?.[1]) {
+    try {
+      return decodeURIComponent(encodedMatch[1]);
+    } catch {
+      return encodedMatch[1];
+    }
+  }
+  const plainMatch = /filename="?([^";]+)"?/i.exec(disposition);
+  return plainMatch?.[1] || '';
+};
+
+const previewMaterial = async (row: MaterialRecord) => {
+  try {
+    const response = await materialApi.previewBlob(row.id);
+    const url = URL.createObjectURL(response.data);
+    const opened = window.open(url, '_blank');
+    if (!opened) {
+      URL.revokeObjectURL(url);
+      ElMessage.warning('浏览器阻止了新窗口，请允许弹窗后重试');
+      return;
+    }
+    opened.opener = null;
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch {
+    ElMessage.warning('无法预览，可下载查看');
+  }
+};
+
+const downloadMaterial = async (row: MaterialRecord) => {
+  const response = await materialApi.downloadBlob(row.id);
+  const disposition = String(response.headers['content-disposition'] || '');
+  const fileName = dispositionFileName(disposition) || row.fileName || `${row.title || 'material'}`;
+  const url = URL.createObjectURL(response.data);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
+const approveMaterial = async (row: MaterialRecord) => {
+  await ElMessageBox.confirm(`确认通过「${row.title}」的资料审核？`, '审核通过', {
+    confirmButtonText: '通过',
+    cancelButtonText: '取消',
+    type: 'success',
+  });
+  await materialApi.audit(row.id, { auditStatus: 'APPROVED' });
+  ElMessage.success('资料已通过审核');
+  await loadData();
+};
+
+const rejectMaterial = async (row: MaterialRecord) => {
+  try {
+    const { value } = await ElMessageBox.prompt('请输入驳回原因', `驳回「${row.title}」`, {
+      confirmButtonText: '确认驳回',
+      cancelButtonText: '取消',
+      inputType: 'textarea',
+      inputPlaceholder: '填写给老师看的驳回原因',
+      inputValidator: (value) => Boolean(value?.trim()) || '请填写驳回原因',
+    });
+    await materialApi.audit(row.id, { auditStatus: 'REJECTED', rejectedReason: String(value || '').trim() });
+    ElMessage.success('资料已驳回');
+    await loadData();
+  } catch {
+    // User cancelled the prompt.
+  }
+};
+
+const handleMaterialCommand = async (command: unknown, row: MaterialRecord) => {
+  const action = String(command);
+  if (action === 'edit') {
+    await openEdit(row);
+    return;
+  }
+  if (action === 'toggle-status') {
+    await toggleStatus(row);
+  }
+};
+
 const uploadMaterialFile = async (options: UploadRequestOptions) => {
   const file = await fileApi.uploadLocal(options.file, 'MATERIAL');
   form.fileId = file.id;
@@ -177,11 +270,24 @@ const labelOf = (map: Record<string, string>, value: string) => map[value] || va
 const resourceText: Record<string, string> = { PDF: 'PDF', VIDEO: '视频', AUDIO: '音频', IMAGE: '图片', LINK: '链接' };
 const studyText: Record<string, string> = { REQUIRED: '必学', OPTIONAL: '选学' };
 const visibilityText: Record<string, string> = { CAMPUS: '全校区', CLASS: '指定班级' };
+const auditText: Record<string, string> = { PENDING: '待审核', APPROVED: '已通过', REJECTED: '已驳回' };
+const auditType = (value: string) => {
+  if (value === 'APPROVED') return 'success';
+  if (value === 'REJECTED') return 'danger';
+  return 'warning';
+};
+const formatFileSize = (size?: number) => {
+  if (!size) return '';
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / 1024 / 1024).toFixed(1)} MB`;
+};
 
 const resetFilters = () => {
   query.keyword = '';
   query.categoryId = undefined;
   query.status = '';
+  query.auditStatus = '';
   query.dateRange = [];
   query.pageNo = 1;
   loadData();
@@ -237,9 +343,14 @@ onUnmounted(() => window.removeEventListener('campus-change', loadData));
           <el-select v-model="query.categoryId" clearable placeholder="分类">
             <el-option v-for="category in categories" :key="category.id" :label="category.name" :value="category.id" />
           </el-select>
-          <el-select v-model="query.status" clearable placeholder="状态">
+          <el-select v-model="query.status" clearable placeholder="发布状态">
             <el-option label="草稿" value="DRAFT" />
             <el-option label="已发布" value="PUBLISHED" />
+          </el-select>
+          <el-select v-model="query.auditStatus" clearable placeholder="审核状态">
+            <el-option label="待审核" value="PENDING" />
+            <el-option label="已通过" value="APPROVED" />
+            <el-option label="已驳回" value="REJECTED" />
           </el-select>
           <el-date-picker
             v-model="query.dateRange"
@@ -263,7 +374,12 @@ onUnmounted(() => window.removeEventListener('campus-change', loadData));
                 </span>
                 <div>
                   <span class="cell-title">{{ row.title }}</span>
-                  <span class="cell-subtitle">{{ row.fileName || '未命名文件' }}</span>
+                  <span class="cell-subtitle file-meta">
+                    <button type="button" class="file-preview-link" @click.stop="previewMaterial(row)">
+                      {{ row.fileName || '未命名文件' }}
+                    </button>
+                    <span v-if="row.fileSize"> · {{ formatFileSize(row.fileSize) }}</span>
+                  </span>
                 </div>
               </div>
             </template>
@@ -290,23 +406,40 @@ onUnmounted(() => window.removeEventListener('campus-change', loadData));
               <span class="text-pill">{{ labelOf(visibilityText, row.visibility) }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="allowDownload" label="下载" width="90">
+          <el-table-column prop="allowDownload" label="学生下载" width="100">
             <template #default="{ row }">
               <el-tag class="status-tag" :type="row.allowDownload ? 'success' : 'info'" effect="plain">{{ row.allowDownload ? '允许' : '禁止' }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="status" label="状态" width="100">
+          <el-table-column prop="auditStatus" label="审核" width="100">
+            <template #default="{ row }">
+              <el-tag class="status-tag" :type="auditType(row.auditStatus)" effect="plain">{{ auditText[row.auditStatus] || row.auditStatus }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="发布状态" width="105">
             <template #default="{ row }">
               <el-tag class="status-tag" :type="statusType(row.status)" effect="plain">{{ statusText[row.status] || row.status }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="170" fixed="right">
+          <el-table-column label="操作" width="220" fixed="right">
             <template #default="{ row }">
               <div class="table-actions">
-                <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-                <el-button link :type="row.status === 'PUBLISHED' ? 'danger' : 'success'" @click="toggleStatus(row)">
-                  {{ row.status === 'PUBLISHED' ? '下架' : '发布' }}
-                </el-button>
+                <el-button link type="primary" class="table-action" @click="downloadMaterial(row)">下载</el-button>
+                <template v-if="row.auditStatus === 'PENDING'">
+                  <el-button link type="success" class="table-action" @click="approveMaterial(row)">通过</el-button>
+                  <el-button link type="danger" class="table-action" @click="rejectMaterial(row)">驳回</el-button>
+                </template>
+                <el-dropdown trigger="click" @command="handleMaterialCommand($event, row)">
+                  <el-button link type="primary" class="table-action table-action-muted">更多</el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item command="edit">编辑</el-dropdown-item>
+                      <el-dropdown-item command="toggle-status">
+                        {{ row.status === 'PUBLISHED' ? '下架' : '发布' }}
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
               </div>
             </template>
           </el-table-column>
@@ -454,6 +587,54 @@ onUnmounted(() => window.removeEventListener('campus-change', loadData));
   color: var(--muted-soft);
   font-size: 12px;
   margin-left: 10px;
+}
+
+.file-meta {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+}
+
+.file-preview-link {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--teal-hover);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  padding: 0;
+  text-align: left;
+}
+
+.file-preview-link:hover {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.table-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  line-height: 1;
+}
+
+.table-actions :deep(.el-button) {
+  margin-left: 0;
+}
+
+.table-action {
+  font-size: 13px;
+  font-weight: 500;
+  min-height: 24px;
+  padding: 0;
+}
+
+.table-action-muted {
+  color: var(--muted);
 }
 
 @media (max-width: 820px) {
